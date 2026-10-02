@@ -178,9 +178,10 @@ class BoundaryTests(unittest.TestCase):
         common.write_private(auth, {})
         requests = []
         class Fake:
+            status = 'in_progress'
             def request(self, path, data=None):
                 requests.append((path, data))
-                return {'status':'in_progress'} if path == 'issues/issue' else []
+                return {'status':self.status} if path == 'issues/issue' else []
         args = ['publish-evidence.py', '--worktree', str(self.root), '--config', str(config),
                 '--attempt', str(attempt), '--content-file', str(content)]
         with patch.object(sys, 'argv', args), \
@@ -193,6 +194,15 @@ class BoundaryTests(unittest.TestCase):
         self.assertTrue((attempt / 'publication/result.json').is_file())
         self.assertFalse((attempt / 'publication-receipt.json').exists())
         self.assertTrue(all(data is None for _, data in requests))
+        for status in ['done', 'cancelled']:
+            api = Fake(); api.status = status
+            with patch.object(sys, 'argv', args), \
+                 patch.object(publisher, 'managed_root', return_value=(self.root, owner)), \
+                 patch.object(publisher, 'API', return_value=api), \
+                 patch.object(publisher.subprocess, 'run') as publish:
+                with self.assertRaisesRegex(RuntimeError, 'COMPLETED_ISSUE_NO_NEW_ACTION'):
+                    publisher.main()
+                publish.assert_not_called()
 
 
 if __name__ == '__main__':

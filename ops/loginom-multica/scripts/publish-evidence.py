@@ -71,7 +71,7 @@ def main():
     marker = 'Evidence receipt: ' + digest
     content += '\n\n' + marker
     api, issue = API(), owner['issue_id']
-    if api.request('issues/' + issue)['status'] in ['done', 'closed']:
+    if api.request('issues/' + issue)['status'] in ['done', 'cancelled']:
         raise RuntimeError('COMPLETED_ISSUE_NO_NEW_ACTION')
     def find():
         comments = api.request('issues/' + issue + '/comments?full=true')
