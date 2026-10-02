@@ -37,10 +37,11 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--deployment', required=True, type=Path)
     parser.add_argument('--pilot-receipt', required=True, type=Path)
+    parser.add_argument('--ref', default='multica')
     args = parser.parse_args()
     deployment = json.loads(args.deployment.read_text())
     receipt = json.loads(args.pilot_receipt.read_text())
     if receipt.get('status') != 'PASS' or not receipt.get('source_sha') or not receipt.get('worker_comment') or not receipt.get('reviewer_comment'):
         raise SystemExit('SUCCESSFUL_PILOT_REQUIRED')
-    configure(API(), deployment, Path(__file__).resolve().parents[1], 'multica')
+    configure(API(), deployment, Path(__file__).resolve().parents[1], args.ref)
     print('configuration_readback_verified')

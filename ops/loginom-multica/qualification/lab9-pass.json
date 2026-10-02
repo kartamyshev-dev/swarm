@@ -1,0 +1,106 @@
+{
+  "status": "PASS",
+  "issue_id": "01a0fc0a-5319-7bd8-9275-c5274ca2cee3",
+  "source_sha": "ccfe5cddfeb74b8ae43deb2827a8f60f41c879a9",
+  "worker_comment": "01a0fc1a-63d3-73fc-9402-9dd71ea5f748",
+  "reviewer_comment": "01a0fc26-9180-7d53-a116-aeff4289f009",
+  "verified_at": "2026-10-02",
+  "roles": {
+    "worker": {
+      "comment_id": "01a0fc1a-63d3-73fc-9402-9dd71ea5f748",
+      "result": {
+        "status": "PASS",
+        "source_sha": "ccfe5cddfeb74b8ae43deb2827a8f60f41c879a9",
+        "source_tree_sha256": "17088532f1e3b182bf50d3007507d3c673a1098f22b44b29d6440dfc5da5c4aa",
+        "role": "worker",
+        "agent_id": "c25d6205-7c17-4672-a177-7e8ee9af9358",
+        "model": "openai/gpt-6.1-sol",
+        "variant": "low",
+        "cli_exit": 0,
+        "oracle_exit": 0,
+        "timed_out": false,
+        "cleanup": {
+          "package_closed": true,
+          "logged_out": true
+        },
+        "duration_s": 617.575,
+        "ops": {
+          "commit": "2b3c5512f3c062ff283fea345f39bcdc76d3ad44",
+          "bundle_sha256": "392af5551d676409650eeff836b6379772d7fe159568d0adc1af9dd4660d8b12"
+        }
+      },
+      "attachments": {
+        "result.json": {
+          "sha256": "3c1d0ad4c9e75967b0b1e668f3f0b818d45fa4d6d9bd68ef9ca068b91a36d2d5",
+          "size": 1046
+        },
+        "events.jsonl": {
+          "sha256": "71f0e56e985fc0ba37a280c59f7b7cf8f8071b0a5eb0ca3a48f2bce1cd4e0cc9",
+          "size": 195118
+        },
+        "stderr.txt": {
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "size": 0
+        },
+        "oracle-result.json": {
+          "sha256": "7df8f364151856e00ae9da22eca528510bb7fe97e641097a3fe44074d8a2a0e0",
+          "size": 7810
+        },
+        "oracle-cleanup.json": {
+          "sha256": "0147003de37a5c1c19d2fa320c8572244c1af7c9b0911dbd367fe262d4feb532",
+          "size": 530
+        }
+      },
+      "oracle_status": "PASS",
+      "publication_digest_verified": true
+    },
+    "reviewer": {
+      "comment_id": "01a0fc26-9180-7d53-a116-aeff4289f009",
+      "result": {
+        "status": "PASS",
+        "source_sha": "ccfe5cddfeb74b8ae43deb2827a8f60f41c879a9",
+        "source_tree_sha256": "17088532f1e3b182bf50d3007507d3c673a1098f22b44b29d6440dfc5da5c4aa",
+        "role": "reviewer",
+        "agent_id": "027d102c-5d25-402c-a8fb-58a3e810013c",
+        "model": "openai/gpt-6.1-sol",
+        "variant": "low",
+        "cli_exit": 0,
+        "oracle_exit": 0,
+        "timed_out": false,
+        "cleanup": {
+          "package_closed": true,
+          "logged_out": true
+        },
+        "duration_s": 653.215,
+        "ops": {
+          "commit": "2b3c5512f3c062ff283fea345f39bcdc76d3ad44",
+          "bundle_sha256": "392af5551d676409650eeff836b6379772d7fe159568d0adc1af9dd4660d8b12"
+        }
+      },
+      "attachments": {
+        "result.json": {
+          "sha256": "b44e8a512cac7c79fe4e2ce5c4c2eadc3c6f23ca58ecc17e92f27b0c2751831c",
+          "size": 1042
+        },
+        "events.jsonl": {
+          "sha256": "86e70bcd1a64f9ba701736575d9307a71b6fc15eaa06d8bda5f4ae5171a8b147",
+          "size": 194482
+        },
+        "stderr.txt": {
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "size": 0
+        },
+        "oracle-result.json": {
+          "sha256": "d147ad1263f558e04dc0a0afc2bfdf00ca1ca1652bf57d965c58191b03be3e15",
+          "size": 7801
+        },
+        "oracle-cleanup.json": {
+          "sha256": "10423e707f30816016e5ba16da6984762899ff39381e24364d742323dc37fb4c",
+          "size": 523
+        }
+      },
+      "oracle_status": "PASS",
+      "publication_digest_verified": true
+    }
+  }
+}
