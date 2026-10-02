@@ -1,0 +1,95 @@
+{
+  "native_codex": {
+    "status": "PASS",
+    "exit_code": 0,
+    "tools": [
+      {
+        "server": "openviking",
+        "tool": "health",
+        "status": "completed",
+        "error_present": false,
+        "result_is_error": false
+      },
+      {
+        "server": "openviking",
+        "tool": "list",
+        "status": "completed",
+        "error_present": false,
+        "result_is_error": false
+      },
+      {
+        "server": "openviking",
+        "tool": "search",
+        "status": "completed",
+        "error_present": false,
+        "result_is_error": false
+      },
+      {
+        "server": "openviking",
+        "tool": "read",
+        "status": "completed",
+        "error_present": false,
+        "result_is_error": false
+      }
+    ],
+    "unexpected_tools": [],
+    "stderr_bytes": 39
+  },
+  "write_receipt": {
+    "session_id": "multica-note-63e4f030909342b583b6e6bcd011fc61",
+    "peer_id": "-Users-kartamyshev-Git-loginom-ai-agent",
+    "content_sha256": "a6baf90c64f8dc735a72cc147268277eb5be4353000cee167ed68d857857ea15",
+    "status": "submitted",
+    "task_id": "7be626d9-7c90-431e-aaa5-211b65e0a4b8",
+    "archive_uri": "viking://user/kartamyshev/sessions/multica-note-63e4f030909342b583b6e6bcd011fc61/history/archive_001"
+  },
+  "task_status": "completed",
+  "task_error": null,
+  "ops": {
+    "commit": "0b57a092fead4befc903068c5e8417f20b8e5359",
+    "bundle_sha256": "1a654a2806205d31fdff711e3c9bf13ae8adcf8e749dcae6b76c9e08a56e18d1"
+  },
+  "configuration": {
+    "agents": [
+      {
+        "role": "generator",
+        "agent_id": "d061f723-dbc6-4db7-bd22-d79b8068cb8a",
+        "peer": "-Users-kartamyshev-Git-loginom-ai-agent",
+        "endpoint": "https://ov.kartamyshev.dev/mcp",
+        "max_concurrent_tasks": 1,
+        "instructions_sha256": "906141a02ebfade0455ebbe90dd81d920dc95a54e950c39d166d529fd264c48e"
+      },
+      {
+        "role": "worker",
+        "agent_id": "c25d6205-7c17-4672-a177-7e8ee9af9358",
+        "peer": "-Users-kartamyshev-Git-loginom-ai-agent",
+        "endpoint": "https://ov.kartamyshev.dev/mcp",
+        "max_concurrent_tasks": 1,
+        "instructions_sha256": "468551def35cde474f4b416744f7dbfff4a80128094f7cca7acb5caca5c434e3"
+      },
+      {
+        "role": "reviewer",
+        "agent_id": "027d102c-5d25-402c-a8fb-58a3e810013c",
+        "peer": "-Users-kartamyshev-Git-loginom-ai-agent",
+        "endpoint": "https://ov.kartamyshev.dev/mcp",
+        "max_concurrent_tasks": 1,
+        "instructions_sha256": "4512ac82f1a09050cdd1cdd3d1ab8c2adb907dace42b73540631c4fed33aa634"
+      }
+    ],
+    "leader_preserved": true,
+    "project_ref_preserved": true,
+    "models_preserved": true
+  },
+  "status": "PASS",
+  "date": "2026-10-02",
+  "peer": "-Users-kartamyshev-Git-loginom-ai-agent",
+  "endpoint": "https://ov.kartamyshev.dev/mcp",
+  "codex_version": "0.159.3",
+  "local_tests_passed": 16,
+  "memory_readback": {
+    "uri": "viking://user/kartamyshev/peers/-Users-kartamyshev-Git-loginom-ai-agent/memories/events/2026/10/02/multica_memory_config.md",
+    "mcp_readback_sha256": "c54fc8df74a986865bfeccb9caac69a37238b555ddee653c52e9f4f54b622fab",
+    "found_via_project_scoped_search": true,
+    "read_verified": true
+  }
+}
