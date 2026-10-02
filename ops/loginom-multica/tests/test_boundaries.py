@@ -6,6 +6,9 @@ import sys
 import tempfile
 import unittest
 from unittest.mock import patch
+from types import SimpleNamespace
+from contextlib import redirect_stdout
+from io import StringIO
 
 SCRIPTS = Path(__file__).resolve().parents[1] / 'scripts'
 sys.path.insert(0, str(SCRIPTS))
@@ -55,6 +58,20 @@ class BoundaryTests(unittest.TestCase):
             build.publish(temporary / 'missing', current, temporary)
         self.assertEqual((current / 'old').read_text(), 'old')
 
+    def test_verified_client_is_reused_when_dependency_network_is_unavailable(self):
+        current = self.root / 'current'; current.mkdir()
+        (current / 'cli-manifest.json').write_text(json.dumps({'format':'loginom-cli-artifact-v1'}))
+        with patch.object(sys, 'argv', ['build.py', str(self.root), str(current)]), \
+             patch.object(build.os, 'uname', return_value=SimpleNamespace(sysname='Linux', machine='x86_64')), \
+             patch.object(build, 'managed_root', return_value=(self.root, {})), \
+             patch.object(build.subprocess, 'check_output', return_value='1.3.14'), \
+             patch.object(build, 'verify_candidate', return_value=SimpleNamespace(returncode=0)), \
+             patch.object(build, 'ops_identity', return_value={'commit':'fixture'}), \
+             patch.object(build, 'build_command', side_effect=RuntimeError('NETWORK_UNAVAILABLE')) as install, \
+             redirect_stdout(StringIO()):
+            build.main()
+            install.assert_not_called()
+
     def test_three_publications_keep_only_current_after_own_temps_removed(self):
         current = self.root / 'current'
         for index in range(3):
@@ -101,6 +118,36 @@ class BoundaryTests(unittest.TestCase):
             publisher.verify_upload(Fake(), 'issue', comment, {'result.json':'correct'})
         with self.assertRaisesRegex(RuntimeError, 'ATTACHMENT_BINDING_MISMATCH'):
             publisher.verify_upload(Fake(), 'foreign', comment, {'result.json':'correct'})
+
+    def test_failed_upload_preserves_local_evidence_without_receipt_or_done(self):
+        attempt = self.root / 'attempts' / 'one'
+        evidence = attempt / 'evidence'
+        evidence.mkdir(parents=True)
+        owner = {'workspace_id':'workspace', 'issue_id':'issue', 'agent_id':'worker'}
+        result = evidence / 'result.json'
+        common.write_private(result, {**owner, 'status':'PASS', 'source_sha':'commit'})
+        content = attempt / 'comment.md'; content.write_text('Verified result')
+        config, auth = self.root / 'config.json', self.root / 'auth.json'
+        common.write_private(config, {'provider_auth_file':str(auth),
+            'loginom':{'password':'private-password', 'api_key':'private-api-key'}})
+        common.write_private(auth, {})
+        requests = []
+        class Fake:
+            def request(self, path, data=None):
+                requests.append((path, data))
+                return {'status':'in_progress'} if path == 'issues/issue' else []
+        args = ['publish-evidence.py', '--worktree', str(self.root), '--config', str(config),
+                '--attempt', str(attempt), '--content-file', str(content)]
+        with patch.object(sys, 'argv', args), \
+             patch.object(publisher, 'managed_root', return_value=(self.root, owner)), \
+             patch.object(publisher, 'API', return_value=Fake()), \
+             patch.object(publisher.subprocess, 'run', return_value=SimpleNamespace(returncode=1)):
+            with self.assertRaisesRegex(RuntimeError, 'EVIDENCE_PUBLICATION_UNCONFIRMED'):
+                publisher.main()
+        self.assertEqual(json.loads(result.read_text())['status'], 'PASS')
+        self.assertTrue((attempt / 'publication/result.json').is_file())
+        self.assertFalse((attempt / 'publication-receipt.json').exists())
+        self.assertTrue(all(data is None for _, data in requests))
 
 
 if __name__ == '__main__':

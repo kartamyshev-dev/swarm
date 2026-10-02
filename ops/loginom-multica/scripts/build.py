@@ -28,9 +28,9 @@ def build_command(command, cwd, lock):
 
 def publish(staged, current, temporary):
     previous = temporary / 'previous'
-    if current.exists():
-        current.rename(previous)
     try:
+        if current.exists():
+            current.rename(previous)
         staged.rename(current)
     except BaseException:
         if previous.exists() and not current.exists():
@@ -63,10 +63,10 @@ def main():
         tools = Path.home() / '.local/share/loginom-multica-tools'
         os.environ.setdefault('LOGINOM_AI_AGENT_NODE_SOURCE', str(tools / 'node-v24.19.0-linux-x64/bin/node'))
         os.environ.setdefault('LOGINOM_AI_AGENT_BROWSER_SOURCE', str(tools / 'browsers'))
-        build_command(['bun', 'install', '--frozen-lockfile', '--ignore-scripts', '--linker=hoisted', '--filter', '@loginom-ai-agent/agent', '--filter', '@loginom-ai-agent/loginom-host'], args.worktree, lock)
         if current.exists() and verify_candidate(args.worktree, current).returncode == 0:
             print(json.dumps({'artifact': str(current), 'reused': True, 'ops': ops_identity()}))
             return
+        build_command(['bun', 'install', '--frozen-lockfile', '--ignore-scripts', '--linker=hoisted', '--filter', '@loginom-ai-agent/agent', '--filter', '@loginom-ai-agent/loginom-host'], args.worktree, lock)
         staging = checked_path(root / 'staging', root)
         staging.mkdir(exist_ok=True, mode=0o700)
         temporary = Path(tempfile.mkdtemp(prefix='build-', dir=staging))
@@ -75,8 +75,8 @@ def main():
             build_command(['bun', 'run', 'script/build-cli.ts', str(staged), '--no-archive'], args.worktree / 'packages/loginom-host', lock)
             if verify_candidate(args.worktree, staged).returncode:
                 raise RuntimeError('NEW_CANDIDATE_INVALID')
-            publish(staged, current, temporary)
             write_private(root / 'build.json', {'owner': owner, 'ops': ops_identity()})
+            publish(staged, current, temporary)
             print(json.dumps({'artifact': str(current), 'reused': False, 'ops': ops_identity()}))
         finally:
             # Only this invocation's temporary output is removed. SIGKILL leftovers belong to native GC.
