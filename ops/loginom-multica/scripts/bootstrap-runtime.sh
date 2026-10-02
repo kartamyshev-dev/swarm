@@ -3,7 +3,7 @@ set -eu
 # Run once as the runtime user. sudo asks in the terminal; no password is stored.
 test "$(uname -s):$(uname -m)" = Linux:x86_64
 sudo apt-get update
-sudo apt-get install -y bubblewrap xvfb openbox xauth dbus-x11 curl unzip fonts-liberation libnss3 libatk-bridge2.0-0 libxkbcommon0 libgbm1 libasound2t64 libcups2t64 libxcomposite1 libxdamage1 libxrandr2 libgtk-3-0t64
+sudo apt-get install -y bubblewrap xvfb openbox xauth x11-utils dbus-x11 curl unzip fonts-liberation libnss3 libatk-bridge2.0-0 libxkbcommon0 libgbm1 libasound2t64 libcups2t64 libxcomposite1 libxdamage1 libxrandr2 libgtk-3-0t64
 tools="$HOME/.local/share/loginom-multica-tools"
 mkdir -p "$tools" "$HOME/.local/bin"
 if ! "$HOME/.local/bin/bun" --version 2>/dev/null | awk '$0 == "1.3.14" {ok=1} END {exit !ok}'; then

@@ -26,10 +26,10 @@ def configure(api, config, root, ref):
     if any(persisted.get(key) != value for key, value in data.items()):
         raise RuntimeError('SQUAD_READBACK_MISMATCH')
     path = 'projects/' + config['project_id'] + '/resources/' + config['resource_id']
-    api.request(path, {'resource_url': config['repository'], 'resource_ref': ref})
-    resources = api.request('projects/' + config['project_id'] + '/resources')
+    api.request(path, {'resource_ref': {'url': config['repository'], 'ref': ref}})
+    resources = api.request('projects/' + config['project_id'] + '/resources')['resources']
     persisted = next(r for r in resources if r['id'] == config['resource_id'])
-    if persisted.get('resource_ref') != ref or persisted.get('resource_url') != config['repository']:
+    if persisted.get('resource_ref') != {'url': config['repository'], 'ref': ref}:
         raise RuntimeError('PROJECT_READBACK_MISMATCH')
 
 
