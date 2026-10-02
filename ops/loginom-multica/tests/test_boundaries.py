@@ -58,6 +58,13 @@ class BoundaryTests(unittest.TestCase):
             build.publish(temporary / 'missing', current, temporary)
         self.assertEqual((current / 'old').read_text(), 'old')
 
+    def test_stalled_build_command_stops_and_releases_inherited_lock(self):
+        lock = common.artifact_lock(self.root)
+        with self.assertRaisesRegex(RuntimeError, 'BUILD_COMMAND_TIMED_OUT'):
+            build.build_command([sys.executable, '-c', 'import time;time.sleep(300)'], self.root, lock, timeout=0.1)
+        os.close(lock)
+        os.close(common.artifact_lock(self.root))
+
     def test_verified_client_is_reused_when_dependency_network_is_unavailable(self):
         current = self.root / 'current'; current.mkdir()
         (current / 'cli-manifest.json').write_text(json.dumps({'format':'loginom-cli-artifact-v1'}))
@@ -109,6 +116,44 @@ class BoundaryTests(unittest.TestCase):
         self.assertTrue(accept.passed(result))
         for changes in [{'cli_exit':-15},{'timed_out':True},{'cleanup':{'package_closed':True,'logged_out':False}}]:
             self.assertFalse(accept.passed({**result, **changes}))
+
+    def test_setup_failure_retains_sanitized_logs_and_never_runs_model(self):
+        worktree = self.root / 'work'; worktree.mkdir()
+        root = worktree / '.multica-node'; root.mkdir()
+        current = root / 'current'; current.mkdir()
+        common.write_private(current / 'cli-manifest.json', {'metadata':{
+            'channel':'dev', 'sourceDirty':False, 'sourceCommit':'commit', 'sourceTreeSha256':'tree'}})
+        acceptance = worktree / 'docs/node-development/nodes/test/acceptance'
+        (acceptance / 'data').mkdir(parents=True)
+        (acceptance / 'task.md').write_text('Save {{PACKAGE_PATH}}')
+        owner = {'workspace_id':'workspace','issue_id':'issue','agent_id':'worker'}
+        config = self.root / 'role.json'
+        common.write_private(config, {'role':'worker','model':'openai/gpt-6.1-sol','variant':'low',
+            'provider_auth_file':str(self.root / 'auth.json'),
+            'loginom':{'username':'worker','password':'private','api_key':'private','url':'https://test.invalid'}})
+        out = root / 'attempts/failed'
+        args = ['accept.py', '--worktree', str(worktree), '--node', 'test', '--config', str(config),
+                '--cli', str(current / 'bin/loginom-ai-agent-cli'), '--out', str(out)]
+        def setup_only(command, **kwargs):
+            self.assertIn('setup', command)
+            kwargs['stdout'].write(b'{"ok":false,"code":"LOGINOM_RUNTIME_START_FAILED"}\n')
+            return 1
+        def redact(command, **kwargs):
+            (out / 'evidence/events.jsonl').write_text('sanitized setup failure\n')
+            return SimpleNamespace(returncode=0)
+        with patch.object(sys, 'argv', args), \
+             patch.object(accept, 'managed_root', return_value=(root, owner)), \
+             patch.object(accept, 'verify_candidate', return_value=SimpleNamespace(returncode=0)), \
+             patch.object(accept, 'ops_identity', return_value={'commit':'fixture'}), \
+             patch.object(accept, 'run', side_effect=setup_only) as run, \
+             patch.object(accept.subprocess, 'run', side_effect=redact), redirect_stdout(StringIO()):
+            self.assertEqual(accept.main(), 1)
+            self.assertEqual(run.call_count, 1)
+        result = json.loads((out / 'evidence/result.json').read_text())
+        self.assertEqual(result['status'], 'FAIL')
+        self.assertEqual(result['error'], 'CLI_SETUP_FAILED')
+        self.assertEqual(result['oracle']['status'], 'not_run')
+        self.assertTrue((out / 'evidence/events.jsonl').is_file())
 
     def test_mismatched_or_failed_download_never_confirms_publication(self):
         comment={'id':'comment','issue_id':'issue','attachments':[{'filename':'result.json','id':'file','comment_id':'comment'}]}

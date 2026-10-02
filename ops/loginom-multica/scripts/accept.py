@@ -99,7 +99,6 @@ def main():
                 command += ['--file', file]
             command += ['--', 'Выполни приложенное задание и сохрани результат в указанном новом пакете без перезаписи существующего файла.']
             result['cli_exit'] = run(command, **launcher, stdout=stdout, stderr=stderr, timeout=7200)
-        subprocess.run([node, Path(__file__).with_name('redact.mjs'), args.worktree / 'packages/loginom-runtime/client/lib/redact.mjs', args.config, config['provider_auth_file'], raw_stdout, raw_stderr, evidence], check=True, capture_output=True)
         # Expectations and administrator settings are created only after the model process exits.
         expected = json.loads((acceptance / 'expected.json').read_text())
         expected['package_path'] = package
@@ -130,6 +129,13 @@ def main():
     except (OSError, ValueError, subprocess.CalledProcessError):
         result['error'] = 'ACCEPTANCE_COMMAND_FAILED'
     finally:
+        # Preserve sanitized setup/timeout failures too; raw logs never become attachments.
+        if raw_stdout.exists() and raw_stderr.exists():
+            try:
+                subprocess.run([node, Path(__file__).with_name('redact.mjs'), args.worktree / 'packages/loginom-runtime/client/lib/redact.mjs', args.config, config['provider_auth_file'], raw_stdout, raw_stderr, evidence], check=True, capture_output=True)
+            except (OSError, subprocess.CalledProcessError):
+                result['status'] = 'FAIL'
+                result['evidence_error'] = 'REDACTION_FAILED'
         result['duration_s'] = round(time.monotonic() - started, 3)
         write_private(evidence / 'result.json', result)
         # The entire attempt is retained for native GC; secret files are never attached.

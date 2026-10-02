@@ -11,10 +11,14 @@ import signal
 from common import artifact_lock, checked_path, managed_root, ops_identity, verify_candidate, write_private
 
 
-def build_command(command, cwd, lock):
+def build_command(command, cwd, lock, timeout=900):
     process = subprocess.Popen(command, cwd=cwd, pass_fds=(lock,), start_new_session=True)
     try:
-        if process.wait():
+        try:
+            code = process.wait(timeout=timeout)
+        except subprocess.TimeoutExpired:
+            raise RuntimeError('BUILD_COMMAND_TIMED_OUT') from None
+        if code:
             raise RuntimeError('BUILD_COMMAND_FAILED')
     finally:
         if process.poll() is None:
