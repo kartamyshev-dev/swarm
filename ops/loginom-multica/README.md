@@ -91,7 +91,7 @@ python3 ~/.local/share/loginom-multica/scripts/publish-evidence.py --worktree "$
 
 Используется штатный `multica issue comment add --attachment`. Helper перечитывает комментарий и скачивает каждое вложение для проверки SHA256. Он не выставляет Done и не удаляет данные. До подтверждённой receipt Done запрещён. Разрешены только result, отредактированные события и stderr, результат/cleanup oracle; клиент, зависимости, профили и сырые журналы не прикладываются.
 
-Инструкции [сквада](instructions/squad.md), [Генератора](instructions/generator.md), [исполнителя](instructions/worker.md), [Ловца](instructions/reviewer.md) загружаются через API. `configure.py` требует успешную pilot receipt; Для стартового ref можно передать `--ref <проверенный-ref>`; ветка отдельной карточки не требует перенастраивать общий ресурс. API-параметры `MULTICA_SERVER_URL`, `MULTICA_TOKEN`, `MULTICA_WORKSPACE_ID`, токен не записывается в репозиторий. Лидер и лимит 1 сохраняются, результат проверяется чтением API.
+Инструкции [сквада](instructions/squad.md), [Генератора](instructions/generator.md), [исполнителя](instructions/worker.md), [Ловца](instructions/reviewer.md) загружаются через API. `configure.py` требует успешную pilot receipt и явный `--ref <проверенный-ref>` стартового checkout, умолчания нет; ветка отдельной карточки не требует перенастраивать общий ресурс. API-параметры `MULTICA_SERVER_URL`, `MULTICA_TOKEN`, `MULTICA_WORKSPACE_ID`, токен не записывается в репозиторий. Лидер и лимит 1 сохраняются, результат проверяется чтением API.
 
 ## Общая память проекта
 

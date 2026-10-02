@@ -46,7 +46,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--deployment', required=True, type=Path)
     parser.add_argument('--pilot-receipt', required=True, type=Path)
-    parser.add_argument('--ref', default='multica')
+    parser.add_argument('--ref', required=True)
     parser.add_argument('--memory-config', type=Path)
     args = parser.parse_args()
     deployment = json.loads(args.deployment.read_text())
