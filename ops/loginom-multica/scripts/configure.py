@@ -4,9 +4,11 @@ import argparse
 import json
 from pathlib import Path
 from api import API
+from common import read_private
+from memory import mcp_server
 
 
-def configure(api, config, root, ref):
+def configure(api, config, root, ref, memory_config=None):
     replacements = {'@@OPS@@': config['ops_path'], '@@GEN@@': config['agents']['generator'],
                     '@@WORKER@@': config['agents']['worker'], '@@REVIEWER@@': config['agents']['reviewer']}
     def template(name):
@@ -16,6 +18,13 @@ def configure(api, config, root, ref):
         return body
     for role, id in config['agents'].items():
         data = {'instructions': template(role), 'max_concurrent_tasks': 1}
+        if memory_config is not None:
+            previous = api.request('agents/' + id)
+            if previous.get('mcp_config_redacted'):
+                raise RuntimeError('MCP_CONFIG_READ_ACCESS_REQUIRED')
+            mcp = previous.get('mcp_config') or {}
+            data['mcp_config'] = {**mcp, 'mcpServers': {
+                **mcp.get('mcpServers', {}), 'openviking': mcp_server(memory_config)}}
         api.request('agents/' + id, data)
         persisted = api.request('agents/' + id)
         if any(persisted.get(key) != value for key, value in data.items()):
@@ -38,10 +47,12 @@ if __name__ == '__main__':
     parser.add_argument('--deployment', required=True, type=Path)
     parser.add_argument('--pilot-receipt', required=True, type=Path)
     parser.add_argument('--ref', default='multica')
+    parser.add_argument('--memory-config', type=Path)
     args = parser.parse_args()
     deployment = json.loads(args.deployment.read_text())
     receipt = json.loads(args.pilot_receipt.read_text())
     if receipt.get('status') != 'PASS' or not receipt.get('source_sha') or not receipt.get('worker_comment') or not receipt.get('reviewer_comment'):
         raise SystemExit('SUCCESSFUL_PILOT_REQUIRED')
-    configure(API(), deployment, Path(__file__).resolve().parents[1], args.ref)
+    memory_config = read_private(args.memory_config) if args.memory_config else None
+    configure(API(), deployment, Path(__file__).resolve().parents[1], args.ref, memory_config)
     print('configuration_readback_verified')

@@ -20,7 +20,7 @@ files = {}
 names = subprocess.check_output(['git', '-C', str(args.repo), 'ls-tree', '-r', '--name-only', commit, '--', prefix], text=True).splitlines()
 for name in names:
     relative = name.removeprefix(prefix)
-    if not relative.startswith(('scripts/', 'instructions/')) and relative not in ['README.md', 'deployment.example.json', 'operator.example.json']:
+    if not relative.startswith(('scripts/', 'instructions/')) and relative not in ['README.md', 'deployment.example.json', 'operator.example.json', 'openviking.example.json']:
         continue
     body = subprocess.check_output(['git', '-C', str(args.repo), 'show', commit + ':' + name])
     path = args.out / relative
