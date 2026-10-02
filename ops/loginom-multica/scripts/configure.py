@@ -13,6 +13,9 @@ def configure(api, config, root, ref, memory_config=None):
                     '@@WORKER@@': config['agents']['worker'], '@@REVIEWER@@': config['agents']['reviewer']}
     def template(name):
         body = (root / 'instructions' / (name + '.md')).read_text()
+        if '@@OWNER@@' in body:
+            owner_id = config.get('owner_id') or api.request('me')['id']
+            body = body.replace('@@OWNER@@', owner_id)
         for key, value in replacements.items():
             body = body.replace(key, value)
         return body

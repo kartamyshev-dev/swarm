@@ -27,6 +27,8 @@ class MemoryTests(unittest.TestCase):
             resource = {'id': 'resource'}
 
             def request(self, path, data=None):
+                if path == 'me':
+                    return {'id': 'owner'}
                 if path == 'agents/agent':
                     if data: self.agent.update(data)
                     return self.agent
@@ -42,7 +44,7 @@ class MemoryTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory); (root / 'instructions').mkdir()
             for name in ['generator', 'worker', 'reviewer', 'squad']:
-                (root / 'instructions' / (name + '.md')).write_text('instructions')
+                (root / 'instructions' / (name + '.md')).write_text('instructions @@OWNER@@')
             deployment = {'ops_path': '/ops', 'agents': {'generator': 'agent', 'worker': 'agent', 'reviewer': 'agent'},
                           'squad_id': 'squad', 'project_id': 'project', 'resource_id': 'resource', 'repository': 'repo'}
             configure.configure(api, deployment, root, 'current-sha', self.config)
@@ -50,6 +52,8 @@ class MemoryTests(unittest.TestCase):
         self.assertEqual(servers['existing'], {'command': 'keep'})
         self.assertEqual(servers['openviking']['headers']['X-OpenViking-Actor-Peer'], memory.PEER)
         self.assertEqual(api.resource['resource_ref']['ref'], 'current-sha')
+        self.assertEqual(api.agent['instructions'], 'instructions owner')
+        self.assertEqual(api.squad['instructions'], 'instructions owner')
 
     def test_note_sends_explicit_peer_and_does_not_claim_extraction_complete(self):
         calls = []

@@ -1,0 +1,11 @@
+{
+  "api_url": "http://backend:8080/api",
+  "app_url": "https://mas.kartamyshev.dev",
+  "workspace_id": "",
+  "workspace_slug": "",
+  "owner_id": "",
+  "squad_id": "",
+  "agent_ids": [],
+  "enabled_at": 0,
+  "poll_seconds": 30
+}
