@@ -3,8 +3,8 @@ import { readFile, mkdir } from "node:fs/promises"
 import { join, resolve } from "node:path"
 import { pathToFileURL } from "node:url"
 
-// Закрывает серверные сессии одного слота перед холодным открытием пакета.
-// Чужие пользователи не трогаются. Учётные данные в stdout не попадают.
+// Close only the prepared account's server sessions before cold verification.
+// Leave other users untouched and keep credentials out of stdout.
 process.umask(0o077)
 const args = parseArgs({
   options: {

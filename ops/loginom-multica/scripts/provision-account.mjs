@@ -23,7 +23,7 @@ const saveState = (state) => {
 const tid = (value) => `[data-tid=${JSON.stringify(value)}]`;
 const suffix = (value) => `[data-tid$=${JSON.stringify(value)}]:visible`;
 const form = 'UserListForm;UserForm;';
-// В Loginom 7.4.2 Viewer обязателен для Designer и недоступен для отключения.
+// Loginom 7.4.2 requires Viewer for Designer and does not allow disabling it.
 const policy = {chkDesigner: true, chkViewer: true, chkRunner: false, chkAdmin: false, chkAllowPublish: false,
   chkAllowPasswordSave: false, chkGlobalFileStorage: false, chkSchedulerFullAccess: false, chkMustChangePassword: false};
 
@@ -36,7 +36,7 @@ async function ready(page) {
     .some((e) => e.getBoundingClientRect().width && e.getBoundingClientRect().height), null, {timeout: 30000});
 }
 
-// Вход; возвращает true, если появилась главная панель, и false при отказе.
+// Return true after the main panel appears, or false on rejected login.
 async function login(page, username, password) {
   const url = new URL(accounts.url);
   url.searchParams.set('testable', 'true');
@@ -44,7 +44,7 @@ async function login(page, username, password) {
   const user = page.locator(tid('LoginForm;Login;edtUsername')).locator('input');
   await user.waitFor({timeout: 70000});
   await user.click(); await user.fill(username);
-  // Поле пароля доступно для ввода только после настоящего клика.
+  // The password field accepts input only after a real click.
   const secret = page.locator(tid('LoginForm;Login;edtPassword')).locator('input');
   await secret.click(); await secret.fill(password);
   await page.locator(tid('LoginForm;Login;btnLogin')).click();
@@ -118,7 +118,7 @@ try {
   saveState('ready');
   console.log(JSON.stringify({role: config.role, username: account.username, state, login: 'ok'}));
 } catch (error) {
-  // Сообщения Playwright могут содержать вводимые значения, поэтому печатаем только код.
+  // Playwright errors may contain entered values; print only the safe error code.
   console.error(JSON.stringify({role: config.role, error: /^[A-Z_:a-z]+$/.test(error.message) ? error.message : 'UI_ERROR'}));
   process.exitCode = 1;
 } finally {
