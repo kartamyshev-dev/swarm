@@ -20,7 +20,10 @@ def configure(api, config, root, ref, memory_config=None):
             body = body.replace(key, value)
         return body
     for role, id in config['agents'].items():
-        data = {'instructions': template(role), 'max_concurrent_tasks': 1}
+        limit = config.get('max_concurrent_tasks', {}).get(role, 1)
+        if type(limit) is not int or not 1 <= limit <= 50:
+            raise RuntimeError('CONCURRENCY_LIMIT_INVALID')
+        data = {'instructions': template(role), 'max_concurrent_tasks': limit}
         if memory_config is not None:
             previous = api.request('agents/' + id)
             if previous.get('mcp_config_redacted'):

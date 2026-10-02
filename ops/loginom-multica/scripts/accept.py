@@ -85,7 +85,7 @@ def main():
               'oracle': {'status': 'not_run'}, 'cleanup': {'package_closed': False, 'logged_out': False}}
     started = time.monotonic()
     raw_stdout, raw_stderr = temporary / 'stdout.raw', temporary / 'stderr.raw'
-    launcher = dict(attempt=output, payload=payload, profile=profile, cwd=work, auth=Path(config['provider_auth_file']), pass_fds=(lock,))
+    launcher = dict(attempt=output, payload=payload, profile=profile, cwd=work, auth=Path(config['provider_auth_file']), capabilities=metadata.get('capabilities', []), pass_fds=(lock,))
     try:
         setup = {'url': config['loginom']['url'], 'username': config['loginom']['username'], 'password': config['loginom']['password'], 'apiKey': config['loginom']['api_key']}
         with raw_stdout.open('wb') as stdout, raw_stderr.open('wb') as stderr:
