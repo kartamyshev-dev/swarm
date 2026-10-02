@@ -1,0 +1,15 @@
+{
+  "workspace_id": "REPLACE_WORKSPACE_UUID",
+  "agents": {"worker": "REPLACE_WORKER_UUID", "reviewer": "REPLACE_REVIEWER_UUID"},
+  "url": "http://logi-test-plan.bg.local/app/?testable=true",
+  "admin_user": "REPLACE_PRIVATELY",
+  "admin_password": "REPLACE_PRIVATELY",
+  "api_key": "REPLACE_PRIVATELY",
+  "model": "openai/gpt-6.1-sol",
+  "variant": "low",
+  "provider_auth_file": "/home/kartai/.config/loginom-multica/auth.json",
+  "model_cache_file": "/home/kartai/.config/loginom-multica/models.json",
+  "node": "/home/kartai/.local/share/loginom-multica-tools/node-v24.19.0-linux-x64/bin/node",
+  "browser": "/home/kartai/.local/share/loginom-multica-tools/browsers/chromium-1243/chrome-linux64/chrome",
+  "playwright_module": "/home/kartai/.local/share/loginom-multica-tools/account-ui/node_modules/playwright/index.mjs"
+}
