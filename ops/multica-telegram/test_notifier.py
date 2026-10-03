@@ -50,9 +50,11 @@ class TestNotifier(unittest.TestCase):
         self.assertEqual(self.app.deliver(self.issues), 1)
         self.app.collect(self.issues, [])
         self.assertEqual(self.app.deliver(self.issues), 0)
-        self.issue['status']='in_progress'
+        self.issue.update(status='in_progress', revision=3)
         self.app.collect(self.issues, [])
-        self.issue.update(status='blocked', revision=3)
+        self.assertEqual(self.app.deliver(self.issues), 1)
+        self.assertIn('Блокировка снята', self.sent[-1][0])
+        self.issue.update(status='blocked', revision=4)
         self.app.collect(self.issues, [])
         self.issue['status']='done'
         self.assertEqual(self.app.deliver(self.issues), 0)
@@ -94,6 +96,89 @@ class TestNotifier(unittest.TestCase):
         for secret in ['private','abcdef','ABCDEFGHIJKLMNOPQRSTUVWXYZ','mul_']:
             self.assertNotIn(secret,value)
         self.assertIn('@Лидер',value)
+
+    def response(self, author='member', epoch=None):
+        return {'id':'reply', 'author_type':author, 'author_id':'owner',
+                'created_at':iso(epoch or self.now+1), 'content':'GitHub-доступ настроен'}
+
+    def test_answer_while_blocked_once_and_restart(self):
+        self.issue['status']='blocked'
+        self.app.collect(self.issues, [self.mention])
+        self.assertEqual(self.app.deliver(self.issues), 1)
+        self.app.api=lambda path:[self.response()]
+        self.app.collect(self.issues, [self.mention])
+        self.assertEqual(self.app.deliver(self.issues), 1)
+        self.assertIn('Ответ в карточке получен',self.sent[-1][0])
+        self.assertIn('ещё не подтвердил',self.sent[-1][0])
+        self.app.db.close()
+        self.app.db=sqlite3.connect(self.root/'db')
+        self.app.collect(self.issues,[self.mention])
+        self.assertEqual(self.app.deliver(self.issues),0)
+
+    def test_repeated_mentions_wait_for_one_human_response(self):
+        self.app.collect(self.issues,[self.mention])
+        self.assertEqual(self.app.deliver(self.issues),1)
+        followup=dict(self.mention,id='followup',created_at=iso(self.now+2))
+        self.app.collect(self.issues,[self.mention,followup])
+        self.assertEqual(self.app.deliver(self.issues),0)
+        self.app.api=lambda path:[self.response(epoch=self.now+3)]
+        self.app.collect(self.issues,[self.mention,followup])
+        self.assertEqual(self.app.deliver(self.issues),1)
+        # A genuinely new request after the reply is not suppressed.
+        new=dict(self.mention,id='new-question',created_at=iso(self.now+4))
+        self.app.collect(self.issues,[new])
+        self.assertEqual(self.app.deliver(self.issues),1)
+
+    def test_reply_before_delivery_suppresses_stale_question(self):
+        self.app.api=lambda path:[self.response()]
+        self.app.collect(self.issues,[self.mention])
+        self.assertEqual(self.app.deliver(self.issues),0)
+        self.app.collect(self.issues,[self.mention])
+        self.assertEqual(self.app.deliver(self.issues),0)
+
+    def test_agent_comment_is_not_a_human_answer(self):
+        self.app.collect(self.issues,[self.mention])
+        self.app.deliver(self.issues)
+        self.app.api=lambda path:[self.response(author='agent')]
+        self.app.collect(self.issues,[self.mention])
+        self.assertEqual(self.app.deliver(self.issues),0)
+
+    def test_answer_and_recovery_coalesce_and_done_is_delivered(self):
+        self.issue['status']='blocked'
+        self.app.collect(self.issues,[self.mention])
+        self.app.deliver(self.issues)
+        self.app.api=lambda path:[self.response(epoch=self.now-0.1)]
+        # Response must follow the question; keep its timestamp in the past.
+        self.app.db.execute("UPDATE event SET created=? WHERE kind='question'",(self.now-1,))
+        self.issue.update(status='done',revision=8)
+        self.app.collect(self.issues,[self.mention])
+        self.assertEqual(self.app.deliver(self.issues),1)
+        self.assertIn('Блокировка снята',self.sent[-1][0])
+        self.assertIn('Done',self.sent[-1][0])
+        self.app.collect(self.issues,[self.mention])
+        self.assertEqual(self.app.deliver(self.issues),0)
+
+    def test_answer_delivery_failure_retries(self):
+        self.app.collect(self.issues,[self.mention])
+        self.app.deliver(self.issues)
+        self.app.api=lambda path:[self.response()]
+        self.app.collect(self.issues,[self.mention])
+        self.app.telegram=lambda *args:(_ for _ in ()).throw(TimeoutError())
+        with self.assertRaises(TimeoutError):self.app.deliver(self.issues)
+        self.app.telegram=lambda text,url:self.sent.append((text,url))
+        self.assertEqual(self.app.deliver(self.issues),1)
+        self.assertIn('ответ',self.sent[-1][0].lower())
+
+    def test_old_queue_schema_migrates_without_repeating_question(self):
+        old=self.root/'legacy.db'
+        db=sqlite3.connect(old)
+        db.executescript("CREATE TABLE event(id TEXT PRIMARY KEY,kind TEXT,issue_id TEXT,comment_id TEXT,created REAL,delivered INTEGER);"
+                         "CREATE TABLE issue_state(id TEXT PRIMARY KEY,status TEXT,seen REAL);")
+        db.execute('INSERT INTO event VALUES(?,?,?,?,?,?)',('notice','question','issue','comment',self.now,1))
+        db.commit();db.close()
+        app=Notifier(self.root/'config.json',self.root/'credentials.json',old)
+        self.assertEqual(app.db.execute('SELECT sent FROM event').fetchone()[0],1)
+        app.db.close()
 
     def test_paginated_squad_cards(self):
         paths=[]
