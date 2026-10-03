@@ -48,6 +48,8 @@ class Notifier:
             self.db.execute('ALTER TABLE event ADD COLUMN sent INTEGER NOT NULL DEFAULT 0')
             self.db.execute('UPDATE event SET sent=delivered')
             self.db.commit()
+        self.db.execute('CREATE TABLE IF NOT EXISTS delivery (event_id TEXT NOT NULL, chat_id TEXT NOT NULL, PRIMARY KEY(event_id,chat_id))')
+        self.db.commit()
         self.comments = {}
         self.reload()
 
@@ -62,8 +64,13 @@ class Notifier:
         with urllib.request.urlopen(request, timeout=20) as response:
             return json.load(response)
 
-    def telegram(self, text, url):
-        payload = {'chat_id': self.credentials['chat_id'], 'text': text[:3900],
+    def recipients(self):
+        values = self.credentials.get('chat_ids', [self.credentials.get('chat_id')])
+        return list(dict.fromkeys(str(value) for value in values
+                                  if value and str(value).isdigit() and int(value) > 0))
+
+    def telegram(self, text, url, chat_id):
+        payload = {'chat_id': chat_id, 'text': text[:3900],
                    'link_preview_options': {'is_disabled': True},
                    'reply_markup': {'inline_keyboard': [[{'text': 'Открыть карточку', 'url': url}]]}}
         request = urllib.request.Request(
@@ -158,6 +165,7 @@ class Notifier:
                 self.queue('answered:' + issue_id + ':' + reply['id'], 'answered', issue_id,
                            reply['id'], timestamp(reply['created_at']))
         self.db.execute('DELETE FROM event WHERE created < ?', (cutoff,))
+        self.db.execute('DELETE FROM delivery WHERE event_id NOT IN (SELECT id FROM event)')
         for stale_id, in self.db.execute('SELECT id FROM issue_state WHERE seen < ?', (now - 30 * 86400,)).fetchall():
             if stale_id not in issues:
                 self.db.execute('DELETE FROM issue_state WHERE id=?', (stale_id,))
@@ -191,9 +199,11 @@ class Notifier:
         return '\n\n'.join(lines), url
 
     def deliver(self, issues):
-        if not self.credentials.get('chat_id'):
+        recipients = self.recipients()
+        if not recipients:
             return 0
         count = 0
+        failure = None
         for event_id, kind, issue_id, comment_id, created in self.db.execute(
                 'SELECT id,kind,issue_id,comment_id,created FROM event WHERE delivered=0 ORDER BY created').fetchall():
             issue = issues.get(issue_id)
@@ -211,16 +221,35 @@ class Notifier:
                 last_reply = max((timestamp(c['created_at']) for c in self.issue_comments(issue_id)
                                   if c.get('author_type') == 'member' and str(c.get('content') or '').strip()), default=0)
                 already_notified = self.db.execute(
-                    "SELECT 1 FROM event WHERE issue_id=? AND kind='question' AND sent=1 AND created>? LIMIT 1",
-                    (issue_id, last_reply)).fetchone()
+                    "SELECT 1 FROM event WHERE issue_id=? AND kind='question' AND sent=1 AND created>? AND id!=? LIMIT 1",
+                    (issue_id, last_reply, event_id)).fetchone()
                 obsolete = obsolete or bool(already_notified)
-            if not obsolete:
-                text, url = self.render(kind, issue, comment_id)
-                self.telegram(text, url)
+            if obsolete:
+                self.db.execute('UPDATE event SET delivered=1 WHERE id=?', (event_id,))
+                self.db.commit()
+                continue
+            text, url = self.render(kind, issue, comment_id)
+            complete = True
+            for chat_id in recipients:
+                if self.db.execute('SELECT 1 FROM delivery WHERE event_id=? AND chat_id=?',
+                                   (event_id, chat_id)).fetchone():
+                    continue
+                try:
+                    self.telegram(text, url, chat_id)
+                except Exception as exc:
+                    complete = False
+                    failure = failure or exc
+                    continue
+                self.db.execute('INSERT INTO delivery VALUES(?,?)', (event_id, chat_id))
+                self.db.execute('UPDATE event SET sent=1 WHERE id=?', (event_id,))
+                self.db.commit()
                 count += 1
                 print(json.dumps({'event': 'delivered', 'kind': kind, 'issue_id': issue_id}), flush=True)
-            self.db.execute('UPDATE event SET delivered=1,sent=? WHERE id=?', (int(not obsolete), event_id))
-            self.db.commit()
+            if complete:
+                self.db.execute('UPDATE event SET delivered=1 WHERE id=?', (event_id,))
+                self.db.commit()
+        if failure:
+            raise failure
         return count
 
     def once(self):
@@ -229,7 +258,7 @@ class Notifier:
         self.collect(issues, self.api('inbox'))
         delivered = self.deliver(issues)
         self.health.write_text(json.dumps({'last_success': time.time(),
-                                          'target_configured': bool(self.credentials.get('chat_id'))}))
+                                          'target_configured': bool(self.recipients())}))
         return delivered
 
 

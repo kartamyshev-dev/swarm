@@ -24,7 +24,7 @@ class TestNotifier(unittest.TestCase):
         (self.root/'credentials.json').write_text('{"chat_id":"123"}')
         self.app = Notifier(self.root/'config.json', self.root/'credentials.json', self.root/'db')
         self.sent = []
-        self.app.telegram = lambda text, url: self.sent.append((text, url))
+        self.app.telegram = lambda text, url, chat_id: self.sent.append((text, url))
         self.app.api = lambda path: [{'id':'comment', 'author_type':'agent', 'author_id':'leader',
                                      'created_at':iso(self.now), 'content':'Какое поле использовать?'}]
         self.issue = {'id':'issue', 'identifier':'LAB-1', 'title':'Узел', 'status':'in_progress',
@@ -82,7 +82,7 @@ class TestNotifier(unittest.TestCase):
             self.app.deliver(self.issues)
         self.app.db.close()
         self.app.db=sqlite3.connect(self.root/'db')
-        self.app.telegram=lambda text,url:self.sent.append((text,url))
+        self.app.telegram=lambda text,url,chat_id:self.sent.append((text,url))
         self.assertEqual(self.app.deliver(self.issues), 1)
         self.app.collect(self.issues, [self.mention])
         self.assertEqual(self.app.deliver(self.issues), 0)
@@ -165,7 +165,7 @@ class TestNotifier(unittest.TestCase):
         self.app.collect(self.issues,[self.mention])
         self.app.telegram=lambda *args:(_ for _ in ()).throw(TimeoutError())
         with self.assertRaises(TimeoutError):self.app.deliver(self.issues)
-        self.app.telegram=lambda text,url:self.sent.append((text,url))
+        self.app.telegram=lambda text,url,chat_id:self.sent.append((text,url))
         self.assertEqual(self.app.deliver(self.issues),1)
         self.assertIn('ответ',self.sent[-1][0].lower())
 
@@ -179,6 +179,38 @@ class TestNotifier(unittest.TestCase):
         app=Notifier(self.root/'config.json',self.root/'credentials.json',old)
         self.assertEqual(app.db.execute('SELECT sent FROM event').fetchone()[0],1)
         app.db.close()
+
+    def test_fanout_partial_failure_restart_and_no_history_replay(self):
+        self.app.credentials = {'chat_ids':['123','456','123']}
+        sends=[]
+        def send(text,url,chat):
+            if chat=='123': raise TimeoutError()
+            sends.append(chat)
+        self.app.telegram=send
+        self.app.collect(self.issues,[self.mention])
+        with self.assertRaises(TimeoutError): self.app.deliver(self.issues)
+        self.assertEqual(sends,['456'])
+        self.app.db.close()
+        self.app.db=sqlite3.connect(self.root/'db')
+        self.app.telegram=lambda text,url,chat:sends.append(chat)
+        self.app.collect(self.issues,[self.mention])
+        self.assertEqual(self.app.deliver(self.issues),1)
+        self.assertEqual(sends,['456','123'])
+        self.app.credentials['chat_ids'].append('789')
+        self.assertEqual(self.app.deliver(self.issues),0)
+
+    def test_both_receive_answer_and_resolution(self):
+        self.app.credentials={'chat_ids':['123','456']}
+        self.issue['status']='blocked'
+        self.app.collect(self.issues,[self.mention])
+        self.assertEqual(self.app.deliver(self.issues),2)
+        self.app.api=lambda path:[self.response()]
+        self.app.collect(self.issues,[self.mention])
+        self.assertEqual(self.app.deliver(self.issues),2)
+        self.issue.update(status='in_review',revision=4)
+        self.app.collect(self.issues,[])
+        self.assertEqual(self.app.deliver(self.issues),2)
+        self.assertEqual(self.app.deliver(self.issues),0)
 
     def test_paginated_squad_cards(self):
         paths=[]
