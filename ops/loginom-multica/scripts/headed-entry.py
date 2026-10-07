@@ -3,8 +3,13 @@
 import subprocess
 import sys
 import time
+import os
+import stat
 from pathlib import Path
 
+leases = tuple(int(value) for value in os.environ.pop('LOGINOM_MULTICA_LEASE_FDS', '').split(',') if value)
+if any(fd < 3 or not stat.S_ISREG(os.fstat(fd).st_mode) for fd in leases):
+    raise RuntimeError('LEASE_DESCRIPTOR_INVALID')
 wm = subprocess.Popen(['/usr/bin/openbox', '--config-file', str(Path(__file__).with_name('openbox.xml'))], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 try:
     for _ in range(50):
@@ -16,7 +21,7 @@ try:
         time.sleep(0.1)
     else:
         raise RuntimeError('WINDOW_MANAGER_NOT_READY')
-    result = subprocess.run(sys.argv[1:])
+    result = subprocess.run(sys.argv[1:], pass_fds=leases)
 finally:
     wm.terminate()
     try:

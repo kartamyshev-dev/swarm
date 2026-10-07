@@ -4,10 +4,35 @@ import argparse
 import hashlib
 import json
 import os
+import re
 from pathlib import Path
 import subprocess
 from api import API
 from common import checked_path, managed_root, read_private, write_private
+
+
+def publication_secrets(config, result):
+    secrets = [config['loginom']['password'], config['loginom']['api_key']]
+    if 'provider_auth_files' in config:
+        selected = result.get('provider_auth_file')
+        if selected:
+            if selected not in config['provider_auth_files'] or result.get('redaction_complete') is not True:
+                raise RuntimeError('PROVIDER_REDACTION_UNCONFIRMED')
+        elif result.get('stage') != 'stage0' or result.get('provider_model') != 'NOT_RUN':
+            raise RuntimeError('EVIDENCE_PROVIDER_BOUNDARY_REQUIRED')
+        # The attempt redactor already consumed pre/post-refresh values under its lease.
+        # Reading a live pool file here would race a later attempt and miss retired tokens.
+        return secrets
+    auth = read_private(Path(config['provider_auth_file']))
+    return secrets + [value.get(key, '') for value in auth.values() if isinstance(value, dict)
+                      for key in ['access', 'refresh', 'key']]
+
+
+def check_publication(body, secrets):
+    if any(secret and secret.encode() in body for secret in secrets):
+        raise RuntimeError('SECRET_IN_EVIDENCE')
+    if re.search(rb'\b(?:Bearer|Basic)\s+[A-Za-z0-9+/_=.-]+|\bsk-(?:proj-)?[A-Za-z0-9_-]{16,}', body, re.I):
+        raise RuntimeError('CREDENTIAL_PATTERN_IN_EVIDENCE')
 
 
 def verify_upload(api, issue, comment, files):
@@ -45,19 +70,18 @@ def main():
     # Unique file names let the read-back compare every file, including both result.json files.
     publication = checked_path(attempt / 'publication', root)
     publication.mkdir(exist_ok=True, mode=0o700)
-    auth = read_private(Path(config['provider_auth_file']))
-    secrets = [config['loginom']['password'], config['loginom']['api_key']]
-    for value in auth.values():
-        if isinstance(value, dict):
-            secrets += [value.get(key, '') for key in ['access', 'refresh', 'key']]
+    secrets = publication_secrets(config, result)
     content_path = checked_path(args.content_file, root)
     content = content_path.read_text()
     files = {}
     for path in paths:
         checked_path(path, root)
         body = path.read_bytes()
-        if any(secret and secret.encode() in body for secret in secrets):
-            raise RuntimeError('SECRET_IN_EVIDENCE')
+        check_publication(body, secrets)
+        if config.get('provider_auth_files') and result.get('provider_auth_file') and path != evidence / 'result.json':
+            expected = result.get('redacted_files', {}).get(str(path.relative_to(evidence)))
+            if hashlib.sha256(body).hexdigest() != expected:
+                raise RuntimeError('REDACTED_EVIDENCE_CHANGED')
         name = ('oracle-' if path.parent.name == 'oracle' else '') + path.name
         target = publication / name
         if target.is_symlink():
@@ -65,8 +89,7 @@ def main():
         target.write_bytes(body)
         target.chmod(0o600)
         files[name] = hashlib.sha256(body).hexdigest()
-    if any(secret and secret in content for secret in secrets):
-        raise RuntimeError('SECRET_IN_COMMENT')
+    check_publication(content.encode(), secrets)
     digest = hashlib.sha256(json.dumps([files, content], sort_keys=True).encode()).hexdigest()
     marker = 'Evidence receipt: ' + digest
     content += '\n\n' + marker

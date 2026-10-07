@@ -14,6 +14,11 @@ from common import read_private, write_private
 def allocate(issue, operator_path, directory):
     issue = str(UUID(issue))
     operator = read_private(operator_path)
+    auth_files = operator.get('provider_auth_files')
+    if (not isinstance(auth_files, list) or len(auth_files) != 8 or
+            any(not isinstance(path, str) or not Path(path).is_absolute() for path in auth_files) or
+            len(set(auth_files)) != 8):
+        raise RuntimeError('EIGHT_PROVIDER_AUTH_FILES_REQUIRED')
     directory = Path(directory) / issue
     directory.mkdir(parents=True, exist_ok=True, mode=0o700)
     lock = os.open(directory / '.accounts.lock', os.O_RDWR | os.O_CREAT, 0o600)
@@ -26,12 +31,18 @@ def allocate(issue, operator_path, directory):
                 config = read_private(path)
                 if config['issue_id'] != issue or config['role'] != role or config['agent_id'] != operator['agents'][role]:
                     raise RuntimeError('ACCOUNT_BINDING_MISMATCH')
+                if config['workspace_id'] != operator['workspace_id']:
+                    raise RuntimeError('WORKSPACE_MISMATCH')
+                updated = {**config, 'operator_file': str(operator_path), 'provider_auth_files': auth_files}
+                updated.pop('provider_auth_file', None)
+                if updated != config:
+                    write_private(path, updated)
             else:
                 config = {'workspace_id': operator['workspace_id'], 'issue_id': issue, 'agent_id': operator['agents'][role], 'role': role,
                           'marker': 'Multica ' + issue + ' ' + role, 'account_state': 'planned',
                           'loginom': {'url': operator['url'], 'username': 'mc-' + issue.replace('-', '')[:20] + '-' + role[0], 'password': secrets.token_urlsafe(18), 'api_key': operator['api_key']},
                           'model': operator.get('model', 'openai/gpt-6.1-sol'), 'variant': 'low',
-                          'operator_file': str(operator_path), 'provider_auth_file': operator['provider_auth_file'], 'model_cache_file': operator.get('model_cache_file')}
+                          'operator_file': str(operator_path), 'provider_auth_files': auth_files, 'model_cache_file': operator.get('model_cache_file')}
                 write_private(path, config)
             configs.append(path)
     finally:

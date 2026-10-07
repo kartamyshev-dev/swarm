@@ -4,20 +4,27 @@ from pathlib import Path
 import signal
 import subprocess
 from shared_auth import auth_lock, auth_mode
+from provider_pool import inherited_auth_lock
 
 
-def run(command, *, attempt, payload, cwd, profile=None, auth=None, capabilities=(), read_only=(), writable=(), input=None, stdout=None, stderr=None, timeout=7200, pass_fds=()):
+def run(command, *, attempt, payload, cwd, profile=None, auth=None, auth_fd=None, capabilities=(), read_only=(), writable=(), input=None, stdout=None, stderr=None, timeout=7200, pass_fds=()):
     attempt, payload, cwd = Path(attempt), Path(payload), Path(cwd)
     script = Path(__file__).resolve().parent
     lock = None
+    borrowed = None
     mode, shared = 'serial', None
     if auth:
         mode, shared = auth_mode(auth, capabilities)
         if mode == 'serial':
-            lock = auth_lock(auth)
+            if auth_fd is None:
+                lock = auth_lock(auth)
+            else:
+                borrowed = inherited_auth_lock(auth, auth_fd)
             if (Path(auth).parent / 'refresh-pending.json').exists():
-                os.close(lock)
+                if lock is not None:
+                    os.close(lock)
                 raise RuntimeError('OAUTH_REFRESH_RECOVERY_REQUIRED')
+    inherited = tuple(dict.fromkeys((*pass_fds, *((lock,) if lock is not None else ()), *((borrowed,) if borrowed is not None else ()))))
     try:
         argv = ['/usr/bin/bwrap', '--die-with-parent', '--new-session', '--unshare-all', '--share-net', '--cap-drop', 'ALL', '--ro-bind', '/usr', '/usr']
         for source, target in [('usr/bin', '/bin'), ('usr/sbin', '/sbin'), ('usr/lib', '/lib'), ('usr/lib64', '/lib64')]:
@@ -33,6 +40,8 @@ def run(command, *, attempt, payload, cwd, profile=None, auth=None, capabilities
         env = {key: value for key, value in os.environ.items() if key in ['PATH', 'LANG', 'LC_ALL', 'HTTP_PROXY', 'HTTPS_PROXY', 'NO_PROXY', 'http_proxy', 'https_proxy', 'no_proxy', 'NODE_EXTRA_CA_CERTS'] and value}
         argv += ['--clearenv']
         env.update({'HOME': str(attempt), 'TMPDIR': '/tmp', 'PATH': '/usr/bin:/bin', 'LANG': 'C.UTF-8', 'LOGINOM_AI_AGENT_PURE': '1', 'LOGINOM_AI_AGENT_DISABLE_PROJECT_CONFIG': '1', 'LOGINOM_AI_AGENT_SYSTEM_PROXY': 'off', 'LOGINOM_AI_AGENT_TEST_HEADLESS': '0'})
+        # bubblewrap forwards inherited descriptors into the sandbox executable.
+        env['LOGINOM_MULTICA_LEASE_FDS'] = ','.join(map(str, inherited))
         if profile:
             env['LOGINOM_AI_AGENT_CLI_PROFILE'] = str(profile)
         if auth:
@@ -48,7 +57,7 @@ def run(command, *, attempt, payload, cwd, profile=None, auth=None, capabilities
         argv += ['--chdir', str(cwd), '--', '/usr/bin/xvfb-run', '-a', '-s', '-screen 0 1920x1200x24 -nolisten tcp', '/usr/bin/python3', str(script / 'headed-entry.py'), *map(str, command)]
         process = None
         try:
-            process = subprocess.Popen(argv, stdin=subprocess.PIPE if input is not None else subprocess.DEVNULL, stdout=stdout, stderr=stderr, start_new_session=True, pass_fds=(*pass_fds, *((lock,) if lock is not None else ())))
+            process = subprocess.Popen(argv, stdin=subprocess.PIPE if input is not None else subprocess.DEVNULL, stdout=stdout, stderr=stderr, start_new_session=True, pass_fds=inherited)
             try:
                 process.communicate(input, timeout=timeout)
                 return process.returncode

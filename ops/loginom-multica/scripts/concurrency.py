@@ -17,11 +17,33 @@ def ensure_idle(api, deployment):
         if api.request('agents/' + id).get('id') != id:
             raise RuntimeError('AGENT_ACCESS_UNCONFIRMED')
     snapshot = api.request('agent-task-snapshot')
-    if not isinstance(snapshot, list) or any(not isinstance(task, dict) or task.get('status') not in TERMINAL for task in snapshot):
+    if not isinstance(snapshot, list) or any(not isinstance(task, dict) for task in snapshot):
         raise RuntimeError('WORKSPACE_NOT_IDLE')
+    active = [task for task in snapshot if task.get('status') not in TERMINAL]
+    if not active:
+        return
+    # A native service run may install its own bundle, but cannot exempt peers.
+    issue_id = deployment.get('maintenance_issue_id')
+    task_id = os.environ.get('MULTICA_TASK_ID')
+    agent_id = os.environ.get('MULTICA_AGENT_ID')
+    if (len(active) != 1 or not issue_id or not task_id or
+            os.environ.get('MULTICA_WORKSPACE_ID') != deployment['workspace_id']):
+        raise RuntimeError('WORKSPACE_NOT_IDLE')
+    task = active[0]
+    if (task.get('id') != task_id or task.get('status') != 'running' or
+            task.get('workspace_id') != deployment['workspace_id'] or
+            task.get('issue_id') != issue_id or task.get('agent_id') != agent_id or
+            agent_id not in deployment['agents'].values()):
+        raise RuntimeError('WORKSPACE_NOT_IDLE')
+    issue = api.request('issues/' + issue_id)
+    if (issue.get('id') != issue_id or issue.get('workspace_id') != deployment['workspace_id'] or
+            issue.get('assignee_type') != 'agent' or issue.get('assignee_id') != agent_id):
+        raise RuntimeError('MAINTENANCE_IDENTITY_UNCONFIRMED')
 
 
 def set_limits(api, deployment, parallel):
+    if type(parallel) is not int or not 1 <= parallel <= 8:
+        raise RuntimeError('CONCURRENCY_LIMIT_INVALID')
     limits = {'generator': 1, 'worker': parallel, 'reviewer': parallel}
     ensure_idle(api, deployment)
     for role, id in deployment['agents'].items():
@@ -36,7 +58,7 @@ def set_limits(api, deployment, parallel):
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--deployment', required=True, type=Path)
-    parser.add_argument('--parallel', type=int, choices=[1, 2], required=True)
+    parser.add_argument('--parallel', type=int, choices=range(1, 9), required=True)
     parser.add_argument('--confirm-idle', action='store_true', required=True,
                         help='No new cards, mentions, schedules or runs during this maintenance window')
     args = parser.parse_args()

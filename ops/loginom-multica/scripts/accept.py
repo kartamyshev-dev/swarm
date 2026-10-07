@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Run CLI and the client's independent oracle; preserve failed evidence."""
 import argparse
+import hashlib
 import json
 import os
 from pathlib import Path
@@ -9,6 +10,7 @@ import subprocess
 import time
 from common import artifact_lock, checked_path, managed_root, ops_identity, read_private, verify_candidate, write_private
 from linux import run
+from provider_pool import acquire, inherited_account_lock, loginom_lock, remaining
 
 
 def passed(result):
@@ -34,6 +36,7 @@ def main():
     parser.add_argument('--config', default=os.environ.get('LOGINOM_MULTICA_CONFIG'), type=Path)
     parser.add_argument('--cli', required=True, type=Path)
     parser.add_argument('--out', required=True, type=Path)
+    parser.add_argument('--timeout', type=float, default=7200)
     args = parser.parse_args()
     if not args.config:
         raise RuntimeError('ROLE_CONFIG_REQUIRED')
@@ -84,13 +87,32 @@ def main():
               'cli_exit': None, 'oracle_exit': None, 'timed_out': False, 'package_path': package,
               'oracle': {'status': 'not_run'}, 'cleanup': {'package_closed': False, 'logged_out': False}}
     started = time.monotonic()
+    deadline = started + args.timeout
     raw_stdout, raw_stderr = temporary / 'stdout.raw', temporary / 'stderr.raw'
-    launcher = dict(attempt=output, payload=payload, profile=profile, cwd=work, auth=Path(config['provider_auth_file']), capabilities=metadata.get('capabilities', []), pass_fds=(lock,))
+    lease, account_fd, account_owned, completed = None, None, False, False
+    selected_auth = Path(config['provider_auth_file']) if config.get('provider_auth_file') else None
+    result['redaction_complete'] = False
     try:
+        borrowed_account = os.environ.get('LOGINOM_MULTICA_ACCOUNT_FD')
+        if borrowed_account:
+            account_fd = inherited_account_lock(config, int(borrowed_account), args.config)
+        else:
+            account_fd = loginom_lock(config, deadline=deadline, config_path=args.config)
+            account_owned = True
+        if 'provider_auth_files' in config:
+            lease = acquire(config['provider_auth_files'], deadline=deadline, owner=str(output))
+            selected_auth = lease.path
+        if selected_auth is None:
+            raise RuntimeError('PROVIDER_AUTH_CATALOG_REQUIRED')
+        result['provider_auth_file'] = str(selected_auth)
+        fds = (lock, account_fd, *((lease.fd,) if lease else ()))
+        launcher = dict(attempt=output, payload=payload, profile=profile, cwd=work, auth=selected_auth,
+                        auth_fd=lease.fd if lease else None, capabilities=metadata.get('capabilities', []), pass_fds=fds)
         setup = {'url': config['loginom']['url'], 'username': config['loginom']['username'], 'password': config['loginom']['password'], 'apiKey': config['loginom']['api_key']}
         with raw_stdout.open('wb') as stdout, raw_stderr.open('wb') as stderr:
-            code = run([args.cli, 'loginom', 'setup', '--stdin-json', '--format', 'json'], **launcher, input=json.dumps(setup).encode(), stdout=stdout, stderr=stderr, timeout=240)
+            code = run([args.cli, 'loginom', 'setup', '--stdin-json', '--format', 'json'], **launcher, input=json.dumps(setup).encode(), stdout=stdout, stderr=stderr, timeout=min(240, remaining(deadline)))
             if code:
+                completed = code > 0
                 raise RuntimeError('CLI_SETUP_FAILED')
         # Model list/check is done in bootstrap; the explicit run itself proves availability.
         with raw_stdout.open('wb') as stdout, raw_stderr.open('wb') as stderr:
@@ -98,7 +120,14 @@ def main():
             for file in sorted(work.iterdir()):
                 command += ['--file', file]
             command += ['--', 'Выполни приложенное задание и сохрани результат в указанном новом пакете без перезаписи существующего файла.']
-            result['cli_exit'] = run(command, **launcher, stdout=stdout, stderr=stderr, timeout=7200)
+            result['cli_exit'] = run(command, **launcher, stdout=stdout, stderr=stderr, timeout=remaining(deadline))
+        completed = result['cli_exit'] >= 0
+        if lease:
+            logs = raw_stdout.read_text(errors='replace') + raw_stderr.read_text(errors='replace')
+            if any(value in logs.lower() for value in ['invalid_grant', 'refresh_token_reused', 'refresh_token_expired', 'token refresh failed', 'authentication_error', 'invalid_api_key']):
+                lease.quarantine('PROVIDER_AUTH_REVOKED')
+            if result['cli_exit'] < 0:
+                lease.quarantine('PROVIDER_AUTH_INTERRUPTED')
         # Expectations and administrator settings are created only after the model process exits.
         expected = json.loads((acceptance / 'expected.json').read_text())
         expected['package_path'] = package
@@ -112,34 +141,51 @@ def main():
         release = temporary / 'release'
         release.mkdir(mode=0o700)
         with (release / 'stdout').open('wb') as stdout, (release / 'stderr').open('wb') as stderr:
-            code = run([node, Path(__file__).with_name('release-sessions.mjs'), '--resources', resources, '--accounts', temporary / 'admin.json', '--user', setup['username'], '--output', release], attempt=output, payload=payload, cwd=release, stdout=stdout, stderr=stderr, timeout=180, pass_fds=(lock,))
+            code = run([node, Path(__file__).with_name('release-sessions.mjs'), '--resources', resources, '--accounts', temporary / 'admin.json', '--user', setup['username'], '--output', release], attempt=output, payload=payload, cwd=release, stdout=stdout, stderr=stderr, timeout=min(180, remaining(deadline)), pass_fds=fds)
             if code:
                 raise RuntimeError('OWN_SESSION_RELEASE_FAILED')
         oracle = evidence / 'oracle'
         oracle.mkdir(mode=0o700)
         with (oracle / 'stdout.txt').open('wb') as stdout, (oracle / 'stderr.txt').open('wb') as stderr:
-            result['oracle_exit'] = run([node, args.worktree / 'scripts/node-acceptance/cold-check.mjs', '--config', temporary / 'cold-config.json', '--resources', resources, '--saved', temporary / 'saved.json', '--expected', temporary / 'expected.json', '--output', oracle], attempt=output, payload=payload, cwd=oracle, read_only=[args.worktree], stdout=stdout, stderr=stderr, timeout=600, pass_fds=(lock,))
+            result['oracle_exit'] = run([node, args.worktree / 'scripts/node-acceptance/cold-check.mjs', '--config', temporary / 'cold-config.json', '--resources', resources, '--saved', temporary / 'saved.json', '--expected', temporary / 'expected.json', '--output', oracle], attempt=output, payload=payload, cwd=oracle, read_only=[args.worktree], stdout=stdout, stderr=stderr, timeout=min(600, remaining(deadline)), pass_fds=fds)
         cold_result = json.loads((oracle / 'result.json').read_text())
         result['oracle'] = {'status': cold_result.get('status', 'FAIL')}
         result['cleanup'] = cold_result.get('cleanup', result['cleanup'])
         result['status'] = 'PASS' if passed(result) else 'FAIL'
     except RuntimeError as error:
         result['error'] = str(error)
-        result['timed_out'] = str(error) == 'COMMAND_TIMED_OUT'
+        result['timed_out'] = str(error) in ['COMMAND_TIMED_OUT', 'ATTEMPT_DEADLINE_EXCEEDED']
+        if lease and not completed:
+            lease.quarantine('PROVIDER_AUTH_INTERRUPTED')
     except (OSError, ValueError, subprocess.CalledProcessError):
         result['error'] = 'ACCEPTANCE_COMMAND_FAILED'
     finally:
         # Preserve sanitized setup/timeout failures too; raw logs never become attachments.
-        if raw_stdout.exists() and raw_stderr.exists():
+        if raw_stdout.exists() and raw_stderr.exists() and selected_auth:
             try:
-                subprocess.run([node, Path(__file__).with_name('redact.mjs'), args.worktree / 'packages/loginom-runtime/client/lib/redact.mjs', args.config, config['provider_auth_file'], raw_stdout, raw_stderr, evidence], check=True, capture_output=True)
-            except (OSError, subprocess.CalledProcessError):
+                if lease:
+                    lease.current_secrets()
+                subprocess.run([node, Path(__file__).with_name('redact.mjs'), args.worktree / 'packages/loginom-runtime/client/lib/redact.mjs', args.config, selected_auth, raw_stdout, raw_stderr, evidence, '--secrets-stdin'], input=json.dumps(lease.secrets if lease else []).encode(), check=True, capture_output=True, timeout=30)
+                result['redaction_complete'] = True
+                result['redacted_files'] = {str(path.relative_to(evidence)): hashlib.sha256(path.read_bytes()).hexdigest()
+                                            for path in [evidence / 'events.jsonl', evidence / 'stderr.txt', evidence / 'oracle/result.json', evidence / 'oracle/cleanup.json'] if path.is_file()}
+            except (OSError, RuntimeError, subprocess.CalledProcessError, subprocess.TimeoutExpired):
                 result['status'] = 'FAIL'
                 result['evidence_error'] = 'REDACTION_FAILED'
+                if lease:
+                    lease.quarantine('PROVIDER_AUTH_REDACTION_FAILED')
         result['duration_s'] = round(time.monotonic() - started, 3)
-        write_private(evidence / 'result.json', result)
-        # The entire attempt is retained for native GC; secret files are never attached.
-        os.close(lock)
+        try:
+            write_private(evidence / 'result.json', result)
+        finally:
+            # The entire attempt is retained for native GC; secret files are never attached.
+            try:
+                if lease:
+                    lease.close(completed=completed)
+            finally:
+                if account_owned:
+                    os.close(account_fd)
+                os.close(lock)
     print(json.dumps({'status': result['status'], 'result': str(evidence / 'result.json'), 'source_sha': result['source_sha']}))
     return 0 if result['status'] == 'PASS' else 1
 

@@ -7,7 +7,16 @@
   "api_key": "REPLACE_PRIVATELY",
   "model": "openai/gpt-6.1-sol",
   "variant": "low",
-  "provider_auth_file": "/home/kartai/.config/loginom-multica/auth.json",
+  "provider_auth_files": [
+    "/home/kartai/.config/loginom-multica/provider-accounts/01/profile/data/auth.json",
+    "/home/kartai/.config/loginom-multica/provider-accounts/02/profile/data/auth.json",
+    "/home/kartai/.config/loginom-multica/provider-accounts/03/profile/data/auth.json",
+    "/home/kartai/.config/loginom-multica/provider-accounts/04/profile/data/auth.json",
+    "/home/kartai/.config/loginom-multica/provider-accounts/05/profile/data/auth.json",
+    "/home/kartai/.config/loginom-multica/provider-accounts/06/profile/data/auth.json",
+    "/home/kartai/.config/loginom-multica/provider-accounts/07/profile/data/auth.json",
+    "/home/kartai/.config/loginom-multica/provider-accounts/08/profile/data/auth.json"
+  ],
   "model_cache_file": "/home/kartai/.config/loginom-multica/models.json",
   "node": "/home/kartai/.local/share/loginom-multica-tools/node-v24.19.0-linux-x64/bin/node",
   "browser": "/home/kartai/.local/share/loginom-multica-tools/browsers/chromium-1243/chrome-linux64/chrome",
