@@ -1,0 +1,47 @@
+{
+  "observed_at": "2026-10-07T16:44:13+03:00",
+  "maintenance_issue_id": "01a11677-d0f8-7775-80f6-c6de0da7eb27",
+  "native_task_id": "01a11698-3966-7a34-bf0a-2f2fea8c0ad1",
+  "comment_id": "01a1169b-8666-7c56-ba6b-2367ed795e99",
+  "attachment_id": "01a1169b-8565-7956-8dad-bc4c318a3961",
+  "attachment_bytes": 1132,
+  "attachment_sha256": "59bcf1dbfaba4e1eff64b8a4baf023a8b0ad08ae406d064e591a898e10baee46",
+  "checkpoint": {
+    "commit": "4be3fa7646679f8128fc3baac3f278ecd0e25e85",
+    "bundle_sha256": "8ef902feba2150e93f2b7695ac85fbc8054505fd0cec1e230b283443d330d5ac",
+    "files": 35,
+    "installed": "/home/kartai/.local/share/loginom-multica",
+    "previous_bundle": "/home/kartai/.local/share/.loginom-multica-previous-0b57a092fead-smlz_sm7",
+    "strict_inventory": "PASS",
+    "previous_inventory": "PASS",
+    "previous_version_sha256": "368f428478cfa1b9b87ef354c2c7a5c43978dba5e6570edd0cd50768e2c086de",
+    "previous_version_byte_for_byte": true,
+    "local_patch_preserved": true,
+    "fake_tests": {
+      "run": 78,
+      "pass": 78,
+      "skip": 0
+    },
+    "installed_linux_smoke": {
+      "oauth_fd": true,
+      "loginom_fd": true,
+      "AUTH_BUSY": true,
+      "fake_refresh": true,
+      "other_auth_invisible": true,
+      "shutdown": true
+    },
+    "cli_source_sha": "548955b05cfbc579b82bdf2da4187bfc927e976f",
+    "cli_clean": true,
+    "cli_full_inventory": "PASS",
+    "empty_profiles": 8,
+    "profile_permissions": "PASS",
+    "links_copies": "absent",
+    "operator_role_configs_changed": false,
+    "model_cycles": "NOT_RUN",
+    "login_slot1": "NOT_RUN",
+    "activation": "NOT_RUN"
+  },
+  "api_instruction_limits_readback": "PASS",
+  "user_authorizations": "PENDING",
+  "eight_real_model_cycles": "NOT_RUN"
+}
