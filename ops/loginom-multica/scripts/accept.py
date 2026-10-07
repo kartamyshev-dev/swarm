@@ -44,6 +44,8 @@ def main():
     if not math.isfinite(args.timeout) or args.timeout <= 0:
         raise RuntimeError('ATTEMPT_TIMEOUT_INVALID')
     config = read_private(args.config)
+    if config.get('stage') == 'stage0':
+        raise RuntimeError('STAGE0_MODEL_ACCEPTANCE_FORBIDDEN')
     root, owner = managed_root(args.worktree, config)
     output = checked_path(args.out, root)
     if output.parent != root / 'attempts' or output.exists():
