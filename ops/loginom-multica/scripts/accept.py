@@ -3,6 +3,7 @@
 import argparse
 import hashlib
 import json
+import math
 import os
 from pathlib import Path
 import shutil
@@ -36,10 +37,12 @@ def main():
     parser.add_argument('--config', default=os.environ.get('LOGINOM_MULTICA_CONFIG'), type=Path)
     parser.add_argument('--cli', required=True, type=Path)
     parser.add_argument('--out', required=True, type=Path)
-    parser.add_argument('--timeout', type=float, default=7200)
+    parser.add_argument('--timeout', type=float, default=9600)
     args = parser.parse_args()
     if not args.config:
         raise RuntimeError('ROLE_CONFIG_REQUIRED')
+    if not math.isfinite(args.timeout) or args.timeout <= 0:
+        raise RuntimeError('ATTEMPT_TIMEOUT_INVALID')
     config = read_private(args.config)
     root, owner = managed_root(args.worktree, config)
     output = checked_path(args.out, root)
@@ -85,6 +88,8 @@ def main():
               'cli_manifest_sha256': __import__('hashlib').sha256((payload / 'cli-manifest.json').read_bytes()).hexdigest(),
               'ops': ops_identity(), 'model': config['model'], 'variant': config['variant'],
               'cli_exit': None, 'oracle_exit': None, 'timed_out': False, 'package_path': package,
+              'timeouts_s': {'attempt': args.timeout, 'setup': 240, 'model': 7200, 'session_release': 180,
+                             'oracle': 1800, 'evidence_redaction': 30, 'process_termination_grace': 70},
               'oracle': {'status': 'not_run'}, 'cleanup': {'package_closed': False, 'logged_out': False}}
     started = time.monotonic()
     deadline = started + args.timeout
@@ -120,7 +125,7 @@ def main():
             for file in sorted(work.iterdir()):
                 command += ['--file', file]
             command += ['--', 'Выполни приложенное задание и сохрани результат в указанном новом пакете без перезаписи существующего файла.']
-            result['cli_exit'] = run(command, **launcher, stdout=stdout, stderr=stderr, timeout=remaining(deadline))
+            result['cli_exit'] = run(command, **launcher, stdout=stdout, stderr=stderr, timeout=min(7200, remaining(deadline)))
         completed = result['cli_exit'] >= 0
         if lease:
             logs = raw_stdout.read_text(errors='replace') + raw_stderr.read_text(errors='replace')
@@ -147,7 +152,7 @@ def main():
         oracle = evidence / 'oracle'
         oracle.mkdir(mode=0o700)
         with (oracle / 'stdout.txt').open('wb') as stdout, (oracle / 'stderr.txt').open('wb') as stderr:
-            result['oracle_exit'] = run([node, args.worktree / 'scripts/node-acceptance/cold-check.mjs', '--config', temporary / 'cold-config.json', '--resources', resources, '--saved', temporary / 'saved.json', '--expected', temporary / 'expected.json', '--output', oracle], attempt=output, payload=payload, cwd=oracle, read_only=[args.worktree], stdout=stdout, stderr=stderr, timeout=min(600, remaining(deadline)), pass_fds=fds)
+            result['oracle_exit'] = run([node, args.worktree / 'scripts/node-acceptance/cold-check.mjs', '--config', temporary / 'cold-config.json', '--resources', resources, '--saved', temporary / 'saved.json', '--expected', temporary / 'expected.json', '--output', oracle], attempt=output, payload=payload, cwd=oracle, read_only=[args.worktree], stdout=stdout, stderr=stderr, timeout=min(1800, remaining(deadline)), pass_fds=fds)
         cold_result = json.loads((oracle / 'result.json').read_text())
         result['oracle'] = {'status': cold_result.get('status', 'FAIL')}
         result['cleanup'] = cold_result.get('cleanup', result['cleanup'])

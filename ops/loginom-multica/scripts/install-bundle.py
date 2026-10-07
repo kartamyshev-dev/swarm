@@ -18,6 +18,7 @@ from common import read_private
 from concurrency import ensure_idle
 
 ROOT_FILES = {'README.md', 'PARALLEL.md', 'deployment.example.json', 'operator.example.json', 'openviking.example.json'}
+LOCAL_PATCH_FIELDS = {'issue', 'approval_comment', 'instruction_comment', 'base_bundle_sha256', 'patch_sha256', 'scope'}
 
 
 def pairs(items):
@@ -67,11 +68,25 @@ def verify_bundle(root, commit=None, digest=None, *, exact=True):
         version = json.loads((root / 'VERSION.json').read_text(), object_pairs_hook=pairs)
     except (OSError, ValueError):
         raise RuntimeError('BUNDLE_VERSION_INVALID') from None
-    if (not isinstance(version, dict) or set(version) != {'commit', 'bundle_sha256', 'files'} or
+    keys = set(version) if isinstance(version, dict) else None
+    allowed_keys = ({'commit', 'bundle_sha256', 'files'},) if exact else (
+        {'commit', 'bundle_sha256', 'files'}, {'commit', 'bundle_sha256', 'files', 'local_patch'})
+    if (keys not in allowed_keys or
             not isinstance(version['commit'], str) or not re.fullmatch('[0-9a-f]{40}', version['commit']) or
             not isinstance(version['bundle_sha256'], str) or not re.fullmatch('[0-9a-f]{64}', version['bundle_sha256']) or
             not isinstance(version['files'], dict) or not version['files']):
         raise RuntimeError('BUNDLE_VERSION_INVALID')
+    if 'local_patch' in version:
+        # Previous runtime provenance is preserved; file identity still comes from hashes.
+        patch = version['local_patch']
+        if (not isinstance(patch, dict) or set(patch) != LOCAL_PATCH_FIELDS or
+                any(not isinstance(patch[key], str) or
+                    not re.fullmatch('[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}', patch[key])
+                    for key in ['issue', 'approval_comment', 'instruction_comment']) or
+                any(not isinstance(patch[key], str) or not re.fullmatch('[0-9a-f]{64}', patch[key])
+                    for key in ['base_bundle_sha256', 'patch_sha256']) or
+                not isinstance(patch['scope'], str) or not patch['scope'].strip()):
+            raise RuntimeError('BUNDLE_LOCAL_PATCH_INVALID')
     for name, checksum in version['files'].items():
         relative = PurePosixPath(name)
         if (not isinstance(name, str) or relative.is_absolute() or '..' in relative.parts or

@@ -154,6 +154,56 @@ class BundleInstallTests(unittest.TestCase):
                 self.install()
         self.assert_old()
 
+    def patched_previous(self):
+        version = {**self.old, 'local_patch': {
+            'issue': '01a10742-299a-7ebc-8280-01361b284ab3',
+            'approval_comment': '01a10b0b-cece-70ca-9b02-e3f19101ecb6',
+            'instruction_comment': '01a10b0e-d222-7ce2-8162-83ce8321d4c7',
+            'base_bundle_sha256': '1a654a2806205d31fdff711e3c9bf13ae8adcf8e749dcae6b76c9e08a56e18d1',
+            'patch_sha256': '658a4c3780d3669819ab79cdf1cf81ab0ad8989a13412951e7bbab7af2098e7b',
+            'scope': 'cold-check timeout 600 -> 1800; CLI timeout remains 7200; base commit is not a new Git commit'}}
+        (self.target / 'VERSION.json').write_text(json.dumps(version, indent=2) + '\n')
+        return version
+
+    def test_previous_local_patch_provenance_is_retained_byte_for_byte(self):
+        previous = self.patched_previous()
+        original = (self.target / 'VERSION.json').read_bytes()
+        result = self.install()
+        backup = Path(result['previous_bundle'])
+        self.assertEqual(installer.verify_bundle(backup, exact=False), previous)
+        self.assertEqual((backup / 'VERSION.json').read_bytes(), original)
+        self.assertEqual(installer.verify_bundle(self.target), self.version)
+
+    def test_unknown_version_fields_and_new_bundle_local_patch_are_rejected(self):
+        previous = self.patched_previous()
+        (self.bundle / 'VERSION.json').write_text(json.dumps({**self.version, 'local_patch': previous['local_patch']}))
+        with self.assertRaisesRegex(RuntimeError, 'BUNDLE_VERSION_INVALID'):
+            self.install()
+        (self.bundle / 'VERSION.json').write_text(json.dumps(self.version))
+        (self.target / 'VERSION.json').write_text(json.dumps({**previous, 'unknown_field': {}}))
+        with self.assertRaisesRegex(RuntimeError, 'BUNDLE_VERSION_INVALID'):
+            self.install()
+        self.assertEqual((self.target / 'scripts/tool.py').read_text(), 'old')
+
+    def test_malformed_previous_local_patch_is_rejected(self):
+        previous = self.patched_previous()
+        for patch_value in [None, [], {}, {**previous['local_patch'], 'issue': 'not-a-uuid'},
+                            {**previous['local_patch'], 'patch_sha256': 'bad-hash'},
+                            {**previous['local_patch'], 'unknown': True}]:
+            (self.target / 'VERSION.json').write_text(json.dumps({**previous, 'local_patch': patch_value}))
+            with self.assertRaisesRegex(RuntimeError, 'BUNDLE_LOCAL_PATCH_INVALID'):
+                self.install()
+        self.assertEqual((self.target / 'scripts/tool.py').read_text(), 'old')
+
+    def test_local_patch_metadata_never_bypasses_previous_file_hashes(self):
+        previous = self.patched_previous()
+        original = (self.target / 'VERSION.json').read_bytes()
+        (self.target / 'scripts/tool.py').write_text('tampered old file')
+        with self.assertRaisesRegex(RuntimeError, 'BUNDLE_FILE_HASH_MISMATCH'):
+            self.install()
+        self.assertEqual((self.target / 'VERSION.json').read_bytes(), original)
+        self.assertEqual((self.target / 'scripts/tool.py').read_text(), 'tampered old file')
+
 
 if __name__ == '__main__':
     unittest.main()
