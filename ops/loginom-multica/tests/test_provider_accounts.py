@@ -140,7 +140,7 @@ print('Login successful', flush=True)
         cards = self.root / 'cards'
         cards.mkdir(mode=0o700)
         role = cards / 'card/worker.json'
-        common.write_private(role, {'workspace_id': 'workspace', 'operator_file': str(operator),
+        common.write_private(role, {'workspace_id': 'workspace', 'operator_file': str(operator), 'issue_id': 'card',
                                    'agent_id': 'worker', 'role': 'worker', 'provider_auth_file': '/unused/auth.json',
                                    'loginom': {'username': 'keep-user'}})
         self.prepare()

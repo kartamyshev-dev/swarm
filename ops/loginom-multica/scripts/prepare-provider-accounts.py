@@ -274,7 +274,6 @@ def check(root):
 
 def activate(api, deployment, root, operator, cards):
     maintenance(api, deployment)
-    state = check(root)
     operator = private_path(operator)
     value = read_private(operator)
     if value.get('workspace_id') != deployment['workspace_id']:
@@ -290,9 +289,15 @@ def activate(api, deployment, root, operator, cards):
                 data = read_private(private_path(path))
                 if (data.get('operator_file') != str(operator) or
                         data.get('workspace_id') != deployment['workspace_id'] or
+                        data.get('issue_id') != card.name or
                         data.get('agent_id') != deployment['agents'][role] or data.get('role') != role):
                     raise RuntimeError('FOREIGN_ROLE_CONFIG')
-                configs.append(path)
+                stage = data.get('stage', 'full')
+                if stage not in ['full', 'stage0']:
+                    raise RuntimeError('ROLE_STAGE_INVALID')
+                if stage == 'full':
+                    configs.append(path)
+    state = check(root)
     for path in configs:
         maintenance(api, deployment)
         data = read_private(path)
