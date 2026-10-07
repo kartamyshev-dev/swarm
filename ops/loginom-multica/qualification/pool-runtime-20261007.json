@@ -44,8 +44,10 @@
   "api_instruction_limits_readback": "PASS",
   "user_authorizations": {
     "distinct_accounts_ready": 1,
-    "required": 8,
-    "slot2": "AWAITING_DIFFERENT_CHATGPT_USER",
+    "eight_account_plan_required": 8,
+    "slot2": "DUPLICATE_USER_THEN_TIMEOUT_QUARANTINED_WRITER_PRESERVED",
+    "login_children": "STOPPED",
+    "auth_locks": "RELEASED",
     "activation": "NOT_RUN"
   },
   "eight_real_model_cycles": "NOT_RUN",
@@ -59,5 +61,11 @@
     "source": "reviewed_builtin_default",
     "config_unchanged_since_start": true,
     "real_model_parallel_acceptance": "NOT_RUN"
+  },
+  "owner_constraint": {
+    "observed_at": "2026-10-07",
+    "distinct_chatgpt_accounts_available": 1,
+    "eight_account_activation": "NOT_RUN",
+    "client_change_authorization": "PENDING_ARCHITECTURE_DECISION"
   }
 }
