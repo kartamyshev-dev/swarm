@@ -1,0 +1,27 @@
+{
+  "workspace_id": "dcf616e7-66eb-470a-9b04-6462f220cf3b",
+  "roles": {
+    "generator": {
+      "id": "d061f723-dbc6-4db7-bd22-d79b8068cb8a",
+      "max_concurrent_tasks": 1,
+      "instructions_sha256": "6cd650edd6a1bca6ef6149d281c94ddebd1cd398d00b57d7c40f11e7028b7da7"
+    },
+    "worker": {
+      "id": "c25d6205-7c17-4672-a177-7e8ee9af9358",
+      "max_concurrent_tasks": 8,
+      "instructions_sha256": "82767f9d7bbc779f24db5167f766d62cac9ea9618562822ce8c4afc270e4de78"
+    },
+    "reviewer": {
+      "id": "027d102c-5d25-402c-a8fb-58a3e810013c",
+      "max_concurrent_tasks": 8,
+      "instructions_sha256": "0c9d116faab3f4f96e0ab97deb0cfeaa4a47eeaa5b9da778cc31b94fdf7cdcc5"
+    }
+  },
+  "project_resources_preserved": true,
+  "eight_real_model_cycles": "NOT_RUN",
+  "squad": {
+    "id": "8ff41bd5-f794-4b5b-a063-026f3874628e",
+    "leader_id": "d061f723-dbc6-4db7-bd22-d79b8068cb8a",
+    "instructions_sha256": "0ed0074f81f50d14686a96ffcdc2c0177107ff3e2e96a5c9f469d558152dcc11"
+  }
+}

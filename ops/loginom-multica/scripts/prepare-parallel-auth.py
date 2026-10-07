@@ -38,10 +38,18 @@ def migrate(api, deployment, operator_path, cards, *, source):
                 for role in ['worker', 'reviewer']:
                     path = card / (role + '.json')
                     if path.exists():
+                        path = private_path(path)
                         data = read_private(path)
-                        if data.get('operator_file') != str(operator_path):
+                        if (data.get('operator_file') != str(operator_path) or
+                                data.get('workspace_id') != deployment['workspace_id'] or
+                                data.get('issue_id') != card.name or data.get('role') != role or
+                                data.get('agent_id') != deployment['agents'][role]):
                             raise RuntimeError('FOREIGN_ROLE_CONFIG')
-                        paths.append(private_path(path))
+                        stage = data.get('stage', 'full')
+                        if stage not in ['full', 'stage0']:
+                            raise RuntimeError('ROLE_STAGE_INVALID')
+                        if stage == 'full':
+                            paths.append(path)
         for path in paths:
             if read_private(path).get('provider_auth_file') not in [str(source), str(target)]:
                 raise RuntimeError('AUTH_REFERENCE_MISMATCH')

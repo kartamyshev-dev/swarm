@@ -1,0 +1,45 @@
+{
+  "date": "2026-10-07",
+  "user_requirement": "eight concurrent inner Loginom CLI model checks with one ChatGPT account",
+  "shared_client_change_authorized": false,
+  "client_checkout": {
+    "sha": "9392aec1290771d2fe80759f6113edb2ab6dafff",
+    "clean": true
+  },
+  "prepared_candidate": "31dfc6412946b8d6042bab27f914aeeaf2e2b2e7",
+  "multica_core_source": "e5f99504a4d886e812c9a3f3f847993e05862209",
+  "official_codex_sources": {
+    "deployed": "01fc69f4026735edfdf6789820549727a4867b11",
+    "stable_0_160_1": "d27764b82f7118f674371e6d6e76271d9d606edb",
+    "alpha_0_162_0_18": "cedb4fd34c54cf81f44bfeabb000c7cc01eced82",
+    "main_snapshot": "0e1520605f67969b58e53762be4d675c036a981d"
+  },
+  "synthetic_replay_probe": {
+    "runtime": "Bun 1.3.14 darwin arm64",
+    "module": "actual shared.ts exported from prepared commit",
+    "network_used": false,
+    "real_credentials_read": false,
+    "first_exchange_attempts": 1,
+    "pending_after_ambiguous_exchange": true,
+    "retry_error": "SHARED_AUTH_REFRESH_UNCERTAIN_RELOGIN_REQUIRED",
+    "same_payload_generic_mutate_cleared_pending": true,
+    "final_exchange_attempts": 2,
+    "replayed_same_refresh": true,
+    "temporary_files_removed": true
+  },
+  "native_file_managed_oauth_risk": "source-confirmed race; native login status usingChatGPT and auth symlink verified read-only; not prior-incident causal proof",
+  "full_installed_shared_cli": "NOT_RUN",
+  "eight_real_model_cycles": "NOT_RUN",
+  "real_refresh": "NOT_RUN",
+  "recommendation": "fix transaction acknowledgement, reject old participants, propagate cancellation, explicit shared mode with eight execution leases and per-attempt secret ledger; separately qualify native external token host adapter",
+  "native_auth_metadata": {
+    "mode": "usingChatGPT",
+    "exitcode": 0,
+    "metadatafilelinkkind": "symlink",
+    "raw_status_log_saved": false,
+    "manual_auth_file_read": false,
+    "login_refresh_model_requested": false,
+    "task_id": "01a116e4-8eba-7619-abbb-3ea51fa5204a",
+    "comment_id": "01a116e9-dbda-7133-a3bc-79d07390d912"
+  }
+}

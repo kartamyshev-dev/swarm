@@ -91,7 +91,8 @@ class BoundaryTests(unittest.TestCase):
     def test_account_pair_is_durable_before_ui_and_idempotent_per_card(self):
         operator = self.root / 'operator.json'
         common.write_private(operator, {'workspace_id':'workspace','agents':{'worker':'w','reviewer':'r'},
-            'url':'https://test.invalid','api_key':'private','provider_auth_file':'/private/auth'})
+            'url':'https://test.invalid','api_key':'private','provider_auth_files':[
+                '/private/account-' + str(index) + '/auth.json' for index in range(8)]})
         first = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa'; second = 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb'
         paths = provision.allocate(first, operator, self.root / 'cards')
         saved = [common.read_private(path) for path in paths]

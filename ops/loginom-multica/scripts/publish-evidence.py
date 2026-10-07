@@ -4,10 +4,48 @@ import argparse
 import hashlib
 import json
 import os
+import re
 from pathlib import Path
 import subprocess
 from api import API
 from common import checked_path, managed_root, read_private, write_private
+
+
+def publication_secrets(config, result):
+    secrets = [config['loginom']['password'], config['loginom']['api_key']]
+    if config.get('stage') == 'stage0':
+        if result.get('stage') != 'stage0' or result.get('provider_model') != 'NOT_RUN':
+            raise RuntimeError('STAGE0_MODEL_BOUNDARY_REQUIRED')
+        if any(key in result for key in ['provider_auth_file', 'provider_auth_files']):
+            raise RuntimeError('STAGE0_PROVIDER_SELECTION_FORBIDDEN')
+        if (any(result.get(key) not in [None, 'NOT_RUN'] for key in ['model', 'variant', 'cli_exit']) or
+                result.get('redaction_complete') is True or result.get('redacted_files')):
+            raise RuntimeError('STAGE0_MODEL_EVIDENCE_FORBIDDEN')
+        # Native research never needs OAuth, including legacy credentials left in a role config.
+        return secrets
+    if result.get('stage') == 'stage0':
+        raise RuntimeError('EVIDENCE_STAGE_BOUNDARY_MISMATCH')
+    if 'provider_auth_files' in config:
+        selected = result.get('provider_auth_file')
+        if not selected:
+            raise RuntimeError('EVIDENCE_PROVIDER_BOUNDARY_REQUIRED')
+        if selected not in config['provider_auth_files'] or result.get('redaction_complete') is not True:
+            raise RuntimeError('PROVIDER_REDACTION_UNCONFIRMED')
+        # The attempt redactor already consumed pre/post-refresh values under its lease.
+        # Reading a live pool file here would race a later attempt and miss retired tokens.
+        return secrets
+    if not config.get('provider_auth_file'):
+        raise RuntimeError('PROVIDER_AUTH_REQUIRED')
+    auth = read_private(Path(config['provider_auth_file']))
+    return secrets + [value.get(key, '') for value in auth.values() if isinstance(value, dict)
+                      for key in ['access', 'refresh', 'key']]
+
+
+def check_publication(body, secrets):
+    if any(secret and secret.encode() in body for secret in secrets):
+        raise RuntimeError('SECRET_IN_EVIDENCE')
+    if re.search(rb'\b(?:Bearer|Basic)\s+[A-Za-z0-9+/_=.-]+|\bsk-(?:proj-)?[A-Za-z0-9_-]{16,}', body, re.I):
+        raise RuntimeError('CREDENTIAL_PATTERN_IN_EVIDENCE')
 
 
 def verify_upload(api, issue, comment, files):
@@ -45,19 +83,18 @@ def main():
     # Unique file names let the read-back compare every file, including both result.json files.
     publication = checked_path(attempt / 'publication', root)
     publication.mkdir(exist_ok=True, mode=0o700)
-    auth = read_private(Path(config['provider_auth_file']))
-    secrets = [config['loginom']['password'], config['loginom']['api_key']]
-    for value in auth.values():
-        if isinstance(value, dict):
-            secrets += [value.get(key, '') for key in ['access', 'refresh', 'key']]
+    secrets = publication_secrets(config, result)
     content_path = checked_path(args.content_file, root)
     content = content_path.read_text()
     files = {}
     for path in paths:
         checked_path(path, root)
         body = path.read_bytes()
-        if any(secret and secret.encode() in body for secret in secrets):
-            raise RuntimeError('SECRET_IN_EVIDENCE')
+        check_publication(body, secrets)
+        if config.get('stage') != 'stage0' and config.get('provider_auth_files') and result.get('provider_auth_file') and path != evidence / 'result.json':
+            expected = result.get('redacted_files', {}).get(str(path.relative_to(evidence)))
+            if hashlib.sha256(body).hexdigest() != expected:
+                raise RuntimeError('REDACTED_EVIDENCE_CHANGED')
         name = ('oracle-' if path.parent.name == 'oracle' else '') + path.name
         target = publication / name
         if target.is_symlink():
@@ -65,8 +102,7 @@ def main():
         target.write_bytes(body)
         target.chmod(0o600)
         files[name] = hashlib.sha256(body).hexdigest()
-    if any(secret and secret in content for secret in secrets):
-        raise RuntimeError('SECRET_IN_COMMENT')
+    check_publication(content.encode(), secrets)
     digest = hashlib.sha256(json.dumps([files, content], sort_keys=True).encode()).hexdigest()
     marker = 'Evidence receipt: ' + digest
     content += '\n\n' + marker
@@ -92,9 +128,10 @@ def main():
     if not comment['content'].startswith(content):
         raise RuntimeError('COMMENT_CONTENT_MISMATCH')
     verify_upload(api, issue, comment, files)
+    boundary = {'stage': 'stage0', 'provider_model': 'NOT_RUN'} if config.get('stage') == 'stage0' else {}
     write_private(attempt / 'publication-receipt.json', {'verified': True, 'issue_id': issue,
-        'comment_id': comment['id'], 'source_sha': result['source_sha'], 'files': files})
-    print(json.dumps({'verified': True, 'comment_id': comment['id'], 'source_sha': result['source_sha']}))
+        'comment_id': comment['id'], 'source_sha': result['source_sha'], 'files': files, **boundary})
+    print(json.dumps({'verified': True, 'comment_id': comment['id'], 'source_sha': result['source_sha'], **boundary}))
 
 
 if __name__ == '__main__':

@@ -6,6 +6,7 @@
   "squad_id": "8ff41bd5-f794-4b5b-a063-026f3874628e",
   "repository": "https://github.com/gooddaytoday/loginom-ai-agent.git",
   "ops_path": "/home/kartai/.local/share/loginom-multica",
+  "max_concurrent_tasks": {"generator": 1, "worker": 8, "reviewer": 8},
   "agents": {
     "generator": "d061f723-dbc6-4db7-bd22-d79b8068cb8a",
     "worker": "c25d6205-7c17-4672-a177-7e8ee9af9358",

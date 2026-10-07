@@ -1,0 +1,32 @@
+{
+  "workspace_id": "dcf616e7-66eb-470a-9b04-6462f220cf3b",
+  "native_stage0_without_provider_oauth": true,
+  "roles": {
+    "generator": {
+      "id": "d061f723-dbc6-4db7-bd22-d79b8068cb8a",
+      "max_concurrent_tasks": 1,
+      "instructions_sha256": "72e3e7a39349d20691bcb8f824c0a788fc2aecf553d07042d5fbdb6fe55c513c",
+      "other_settings_preserved": true
+    },
+    "worker": {
+      "id": "c25d6205-7c17-4672-a177-7e8ee9af9358",
+      "max_concurrent_tasks": 8,
+      "instructions_sha256": "8d996e93cf7b6e148238c541767106bcb8e46a2bafee358f373f9bf200fa0f29",
+      "other_settings_preserved": true
+    },
+    "reviewer": {
+      "id": "027d102c-5d25-402c-a8fb-58a3e810013c",
+      "max_concurrent_tasks": 8,
+      "instructions_sha256": "ba9eed927812409da3f10eba8a7d8350a0b6c4b31c78c2061c3affe54dbaf989",
+      "other_settings_preserved": true
+    }
+  },
+  "eight_real_model_cycles": "NOT_RUN",
+  "squad": {
+    "id": "8ff41bd5-f794-4b5b-a063-026f3874628e",
+    "leader_id": "d061f723-dbc6-4db7-bd22-d79b8068cb8a",
+    "instructions_sha256": "e138713c78d0292fc66f9ba7ff5244f9c6db81a7bab8868a59dc27d51ca95452",
+    "other_settings_preserved": true
+  },
+  "project_resources_preserved": true
+}

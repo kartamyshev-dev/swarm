@@ -53,7 +53,8 @@ class ParallelTests(unittest.TestCase):
         self.cards = self.root / 'cards'
         self.cards.mkdir(mode=0o700)
         self.role = self.cards / 'issue/worker.json'
-        common.write_private(self.role, {'provider_auth_file': str(self.auth), 'operator_file': str(self.operator)})
+        common.write_private(self.role, {'provider_auth_file': str(self.auth), 'operator_file': str(self.operator),
+                                        'workspace_id': 'workspace', 'issue_id': 'issue', 'agent_id': 'worker', 'role': 'worker'})
 
     def tearDown(self):
         self.temporary.cleanup()
