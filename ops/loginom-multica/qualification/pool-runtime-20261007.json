@@ -42,6 +42,22 @@
     "activation": "NOT_RUN"
   },
   "api_instruction_limits_readback": "PASS",
-  "user_authorizations": "PENDING",
-  "eight_real_model_cycles": "NOT_RUN"
+  "user_authorizations": {
+    "distinct_accounts_ready": 1,
+    "required": 8,
+    "slot2": "AWAITING_DIFFERENT_CHATGPT_USER",
+    "activation": "NOT_RUN"
+  },
+  "eight_real_model_cycles": "NOT_RUN",
+  "runtime_capacity": {
+    "observed_at": "2026-10-07T17:02:46+03:00",
+    "task_message_seq": 143,
+    "status": "VERIFIED",
+    "daemon_pid": 2359,
+    "effective_max_concurrent_tasks": 20,
+    "capacity_at_least_eight": true,
+    "source": "reviewed_builtin_default",
+    "config_unchanged_since_start": true,
+    "real_model_parallel_acceptance": "NOT_RUN"
+  }
 }
