@@ -2,22 +2,24 @@
 
 ## Checkpoint параллельности — 07.10.2026
 
-- Исходная обвязка: `e5f99504a4d886e812c9a3f3f847993e05862209`; изолированная рабочая копия, клиент не изменялся.
-- Владелец уточнил: есть один ChatGPT-аккаунт. Схема восьми разных аккаунтов не активируется; клиент пока не изменяется.
-- API лимиты 1/8/8; фактический общий предел daemon 20 подтверждён read-only проверкой неизменённой конфигурации и входных параметров.
-- Служебный idle guard допускает только точный текущий native task с подтверждёнными workspace, issue и agent.
-- Критерии Stage 0 отделены от полного продуктового цикла; повторные попытки и неизвестные эффекты сохраняются.
-- Установлен bundle `4be3fa7646679f8128fc3baac3f278ecd0e25e85`, digest `8ef902feba2150e93f2b7695ac85fbc8054505fd0cec1e230b283443d330d5ac`, 35 файлов; strict readback PASS.
-- 78 тестов PASS локально и на Linux; installed bwrap/Xvfb/headed smoke, OAuth/Loginom FD, fake refresh и shutdown PASS; независимое ревью PASS.
-- Общий срок 9600 с, модель 7200 с, oracle 1800 с: прежняя согласованная настройка oracle сохранена.
-- Инструкции и лимиты 1/8/8 применены через API; обратное чтение и сохранность остальных настроек/ресурса PASS.
-- Старые LAB-19/20/21 отменены; два активных запуска отменены отдельно, возобновления остановлены.
-- Служебная LAB-23 сохранила 215 файлов вне GC; manifest SHA256 `c2895347a76487613e9d385bd43baf79762610f8cfdfd9edc00ba5f702f9c412`.
-- Новые LAB-24/25 — Backlog, прежние PR №39/38 и согласованный Stage 0 сохранены.
-- Slot1 healthy сохранён. Slot2 duplicate-user/timeout: shutdown и lock release подтверждены, quarantine/оставшийся writer сохранены; активных run нет.
-- Прежняя копия сохранена целиком вне GC: VERSION byte-for-byte, hashes и `local_patch` PASS. [Runtime receipt](qualification/pool-runtime-20261007.json).
-- Восемь реальных модельных циклов и независимых приёмок: NOT_RUN. Merge и выпуск не выполнялись.
-- Следующий шаг: установить native Stage 0 без модельного OAuth и проверить пары LAB-24/25; инструкции Stage 0 применены с readback, установщик готовится. Владелец требует также восемь одновременных внутренних модельных проверок; изменение клиента ещё не согласовано.
+- Исходная OPS база `e5f99504a4d886e812c9a3f3f847993e05862209`; отдельная рабочая копия. Клиент чистый `9392aec1290771d2fe80759f6113edb2ab6dafff`, не изменялся.
+- У владельца один ChatGPT-аккаунт; нужны также восемь одновременно выполняемых внутренних CLI-проверок. Сначала запрошен [аудит](qualification/shared-oauth-audit-20261007.md), shared-клиент не включён.
+- Native Codex read-only metadata: usingChatGPT, auth symlink; простой общий файл не гарантирует межпроцессный refresh. Причина старых сбоев не установлена.
+- API лимиты 1/8/8; фактический общий предел daemon 20 подтверждён read-only. Наличие ёмкости не доказывает OAuth-устойчивость.
+- Установлен OPS `c1b73577f0dc347a67a2c8f0e86742cf8b5c53f6`, digest `07e3649440d80b5067838fba5018057e85a573beab5f2ca6e94d790e96d9180f`; strict 35/35 readback PASS.
+- 101 тест PASS локально и на Linux без skips; Stage 0 publication/noOAuth, process cancellation, stage-preserving migration и installed accept gate PASS.
+- CLI источника `548955b05cfbc579b82bdf2da4187bfc927e976f` manifest/full inventory PASS; новая сборка клиента не выполнялась.
+- Инструкции Stage 0 и caps применены через API; полное совпадение, другие настройки и ресурс сохранены. Stage 0 не использует внутренний модельный OAuth.
+- Общий срок полной попытки 9600 с, модель 7200 с, oracle 1800 с сохранены; будущая shared-интеграция требует отдельного режима и восьми execution leases.
+- Старые LAB-19/20/21 отменены; два active run отменены отдельно; прежние SHA/PR, попытки и неизвестные эффекты сохранены.
+- Архив 215/215 файлов вне GC, manifest `c2895347a76487613e9d385bd43baf79762610f8cfdfd9edc00ba5f702f9c412` не изменён.
+- LAB-24/25 Backlog, zero runs; прежние PR №39/38 и объём Stage 0 сохранены. Новые четыре разные Loginom-роли ready/login verified, bindings/0700/0600/noOAuth PASS.
+- Новые подготовочные Loginom-сессии адресно закрыты/проверены, технические дети завершены. LAB-23 Done/run completed; maintenance_issue_id удалён, другие deployment поля сохранены.
+- Slot1 ранее локально healthy; slot2 duplicate-user/timeout quarantine и writer сохранены. Профили и OAuth не менялись; реальная пригодность сессии модели не проверялась.
+- Прежний bundle сохранён целиком, VERSION byte-for-byte и inventory PASS. [Runtime receipt](qualification/stage0-runtime-20261007.json) скачана и SHA256 проверена.
+- Исследование подтвердило synthetic stale-refresh replay в prepared31df после generic mutate; клиент и native broker не изменялись.
+- Восемь реальных модельных циклов и независимых продуктовых приёмок NOT_RUN; merge/release не выполнялись.
+- Следующий шаг: согласовать исправленный общий OAuth-контракт и native refresh ownership после аудита; карточки назначаются вручную.
 
 Все записи ниже — исторические наблюдения своих версий; они не подтверждают текущую установку.
 

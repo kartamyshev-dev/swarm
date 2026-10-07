@@ -1,0 +1,163 @@
+{
+  "attachment_id": "01a116e9-dae2-7971-954e-472c3b2ff8a9",
+  "sha256": "6f876ca932d2c44cc4a7b2b5a2ce60f1933657fc31a2a25c675dfff22050dca6",
+  "receipt": {
+    "installed_commit": "c1b73577f0dc347a67a2c8f0e86742cf8b5c53f6",
+    "installed_digest": "07e3649440d80b5067838fba5018057e85a573beab5f2ca6e94d790e96d9180f",
+    "installed_files": 35,
+    "strict_inventory": true,
+    "previous_bundle": "/home/kartai/.local/share/.loginom-multica-previous-4be3fa764667-nc6s7dd9",
+    "previous_version_sha256": "c76c8f71485e0c210dda30f3bd382df1e21df9d89f8aacc875bd9c470779aee8",
+    "previous_entire_inventory_preserved": true,
+    "previous_backup_manifest_sha256": "c2895347a76487613e9d385bd43baf79762610f8cfdfd9edc00ba5f702f9c412",
+    "previous_backup_unchanged": true,
+    "cli_source_sha": "548955b05cfbc579b82bdf2da4187bfc927e976f",
+    "cli_full_inventory": true,
+    "stage": "stage0",
+    "provider_model": "NOT_RUN",
+    "model_eight_cycles": "NOT_RUN",
+    "full_product_acceptance": "NOT_RUN",
+    "shared_oauth_research_code_integration": "NOT_RUN",
+    "linux_tests": {
+      "run": 101,
+      "passed": 101,
+      "skipped": 0
+    },
+    "fake_stage0_publication_guards": true,
+    "fake_no_oauth_credentials_read": true,
+    "fake_process_group_cancellation": true,
+    "mixed_catalog_stage0_byte_preservation": true,
+    "installed_stage0_gate": {
+      "code": "STAGE0_MODEL_ACCEPTANCE_FORBIDDEN",
+      "attempt_created": false
+    },
+    "source_clean": true,
+    "diff_check": true,
+    "role_bindings": [
+      {
+        "issue_id": "01a11680-72f7-7969-beb8-cbd1751afa72",
+        "role": "worker",
+        "agent_id": "c25d6205-7c17-4672-a177-7e8ee9af9358",
+        "workspace_id": "dcf616e7-66eb-470a-9b04-6462f220cf3b",
+        "operator_binding": true,
+        "stage": "stage0",
+        "account_state": "ready",
+        "login_verified": true,
+        "no_oauth_model_cache": true,
+        "directory_mode": "0700",
+        "config_mode": "0600",
+        "path": "/home/kartai/.config/loginom-multica/cards/01a11680-72f7-7969-beb8-cbd1751afa72/worker.json"
+      },
+      {
+        "issue_id": "01a11680-72f7-7969-beb8-cbd1751afa72",
+        "role": "reviewer",
+        "agent_id": "027d102c-5d25-402c-a8fb-58a3e810013c",
+        "workspace_id": "dcf616e7-66eb-470a-9b04-6462f220cf3b",
+        "operator_binding": true,
+        "stage": "stage0",
+        "account_state": "ready",
+        "login_verified": true,
+        "no_oauth_model_cache": true,
+        "directory_mode": "0700",
+        "config_mode": "0600",
+        "path": "/home/kartai/.config/loginom-multica/cards/01a11680-72f7-7969-beb8-cbd1751afa72/reviewer.json"
+      },
+      {
+        "issue_id": "01a11680-808d-7d94-9073-3a38823dad4a",
+        "role": "worker",
+        "agent_id": "c25d6205-7c17-4672-a177-7e8ee9af9358",
+        "workspace_id": "dcf616e7-66eb-470a-9b04-6462f220cf3b",
+        "operator_binding": true,
+        "stage": "stage0",
+        "account_state": "ready",
+        "login_verified": true,
+        "no_oauth_model_cache": true,
+        "directory_mode": "0700",
+        "config_mode": "0600",
+        "path": "/home/kartai/.config/loginom-multica/cards/01a11680-808d-7d94-9073-3a38823dad4a/worker.json"
+      },
+      {
+        "issue_id": "01a11680-808d-7d94-9073-3a38823dad4a",
+        "role": "reviewer",
+        "agent_id": "027d102c-5d25-402c-a8fb-58a3e810013c",
+        "workspace_id": "dcf616e7-66eb-470a-9b04-6462f220cf3b",
+        "operator_binding": true,
+        "stage": "stage0",
+        "account_state": "ready",
+        "login_verified": true,
+        "no_oauth_model_cache": true,
+        "directory_mode": "0700",
+        "config_mode": "0600",
+        "path": "/home/kartai/.config/loginom-multica/cards/01a11680-808d-7d94-9073-3a38823dad4a/reviewer.json"
+      }
+    ],
+    "distinct_new_loginom_usernames": 4,
+    "same_stand": true,
+    "roles_ready": true,
+    "no_oauth": true,
+    "permissions_verified": true,
+    "previous_backup_files_verified": 215,
+    "new_account_session_cleanup": [
+      {
+        "issue_id": "01a11680-72f7-7969-beb8-cbd1751afa72",
+        "role": "worker",
+        "own_sessions_seen": 1,
+        "own_sessions_closed": 1,
+        "own_sessions_remaining": 0,
+        "admin_logged_out": true,
+        "cleanup": "verified"
+      },
+      {
+        "issue_id": "01a11680-72f7-7969-beb8-cbd1751afa72",
+        "role": "reviewer",
+        "own_sessions_seen": 1,
+        "own_sessions_closed": 1,
+        "own_sessions_remaining": 0,
+        "admin_logged_out": true,
+        "cleanup": "verified"
+      },
+      {
+        "issue_id": "01a11680-808d-7d94-9073-3a38823dad4a",
+        "role": "worker",
+        "own_sessions_seen": 0,
+        "own_sessions_closed": 0,
+        "own_sessions_remaining": 0,
+        "admin_logged_out": true,
+        "cleanup": "verified"
+      },
+      {
+        "issue_id": "01a11680-808d-7d94-9073-3a38823dad4a",
+        "role": "reviewer",
+        "own_sessions_seen": 1,
+        "own_sessions_closed": 1,
+        "own_sessions_remaining": 0,
+        "admin_logged_out": true,
+        "cleanup": "verified"
+      }
+    ],
+    "own_loginom_sessions_remaining": 0,
+    "own_children_stopped": true,
+    "old_node_processes_absent": true,
+    "final_installed_full_inventory": true,
+    "maintenance_id_removed": true,
+    "deployment_other_fields_preserved": true,
+    "deployment_remaining_fields_sha256": "4f94cf8a66bde5f5882f32071e91fda36d05a673273ad5e706aaf7ca3d42d49a",
+    "lab24_lab25_status": "backlog",
+    "new_node_runs": 0,
+    "api_assignments_created": 0,
+    "code_changes": false,
+    "existing_ops_pr": "https://github.com/kartamyshev-dev/swarm/pull/1"
+  },
+  "comment_id": "01a116e9-dbda-7133-a3bc-79d07390d912",
+  "task_id": "01a116e4-8eba-7619-abbb-3ea51fa5204a",
+  "native_auth_metadata": {
+    "mode": "usingChatGPT",
+    "exitcode": 0,
+    "metadatafilelinkkind": "symlink",
+    "raw_status_log_saved": false,
+    "manual_auth_file_read": false,
+    "login_refresh_model_requested": false,
+    "task_id": "01a116e4-8eba-7619-abbb-3ea51fa5204a",
+    "comment_id": "01a116e9-dbda-7133-a3bc-79d07390d912"
+  }
+}
